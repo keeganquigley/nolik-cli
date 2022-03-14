@@ -6,54 +6,139 @@ use crossterm::{
 use clipboard::{ClipboardProvider, ClipboardContext};
 use std::{error::Error, io};
 use std::time::{Duration, Instant};
-// use crossterm::style::Stylize;
-// use sp_core::crypto::Ss58Codec;
-// use sp_core::serde::de::Unexpected::Str;
+
+// use log;
+// use env_logger;
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
-    // style::{Modifier, Style},
     style::{Style},
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, Clear},
     Frame, Terminal,
 };
-
 use bs58;
-// use crossterm::event::Event::Key;
-// use sodiumoxide::crypto::box_;
-// use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 
 use tui::style::Modifier;
 use tui::widgets::{Paragraph};
 use unicode_width::UnicodeWidthStr;
+use serde::{Serialize, Deserialize};
 
 mod helpers;
 mod material;
-use crate::material::color::{BLUE_200, GREEN_200, GREY_800};
+use crate::material::color::{BLUE_200, GREEN_200, GREY_800, RED_200};
 
 mod config;
 use crate::config::constants::MAX_PANES;
 
 mod pane;
-use crate::pane::{Pane, MenuAction};
+use crate::pane::Pane;
 
 mod ui;
+mod menu;
+use crate::menu::{Menu, MenuAction, MenuGroup, MenuItem};
 
+
+#[derive(Clone)]
+enum ConnectionStatus {
+    Success,
+    Error,
+    Pending,
+}
+
+#[derive(Clone)]
 struct App {
     pane_index: usize,
+    menu: Menu,
     panes: Vec<Pane>,
+    connection_status: ConnectionStatus,
+    height: Option<u32>,
 }
+
+// #[derive(Debug, Deserialize)]
+// struct ResponseError {
+//     code: i32,
+//     message: String,
+// }
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SystemSyncState {
+    current_block: u32,
+    starting_block: u32,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct SystemSyncStateSuccess {
+    jsonrpc: String,
+    result: SystemSyncState,
+    id: u8,
+}
+
+#[derive(Serialize)]
+struct NodeRequest {
+    id: u8,
+    jsonrpc: String,
+    method: String,
+    params: Vec<String>,
+}
+
 
 impl App {
     fn new() -> App {
         App {
             pane_index: 0,
-            panes: vec![Pane::new(), Pane::new()]
+            menu: Menu::new(),
+            panes: vec![
+                Pane::new(),
+                Pane::new()],
+            connection_status: ConnectionStatus::Pending,
+            height: None,
         }
     }
 
-    fn on_tick(&mut self) {}
+    async fn on_tick(&mut self) {
+        let client = reqwest::Client::new();
+        let req = NodeRequest {
+            id: 1,
+            jsonrpc: "2.0".to_string(),
+            method: "system_syncState".to_string(),
+            params: vec![],
+        };
+
+        let res = client
+            .post("http://localhost:9933")
+            .json(&serde_json::json!(req))
+            .send()
+            .await;
+
+
+        match res {
+            Ok(res) => {
+                match res.status() {
+                    reqwest::StatusCode::OK => {
+                        match res.json::<SystemSyncStateSuccess>().await {
+                            Ok(parsed) => {
+                                self.height = Some(parsed.result.current_block);
+                                self.connection_status = ConnectionStatus::Success;
+                            },
+                            Err(e) => {
+                                println!("ERR {:?}", e)
+                            },
+                        }
+                    },
+                    _ => {
+                        self.connection_status = ConnectionStatus::Error;
+                    }
+                }
+            },
+            Err(_e) => {
+                self.connection_status = ConnectionStatus::Error;
+            }
+        }
+    }
 
     fn add_pane(&mut self) {
         match self.panes.len() {
@@ -64,6 +149,7 @@ impl App {
         self.panes[self.pane_index.clone()].state.select(None);
 
         let mut panes = self.panes.clone();
+        // panes.insert(self.pane_index + 1, Pane::new(&self.menu.items));
         panes.insert(self.pane_index + 1, Pane::new());
         self.panes = panes.clone();
         self.pane_index += 1;
@@ -93,16 +179,20 @@ impl App {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[async_std::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    // env_logger::init();
+    // info!("Statred!");
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let tick_rate = Duration::from_millis(50);
+
+    let tick_rate = Duration::from_millis(500);
     let app = App::new();
-    let res = run_app(&mut terminal, app, tick_rate);
+    let res = run_app(&mut terminal, app, tick_rate).await;
 
     disable_raw_mode()?;
     execute!(
@@ -114,25 +204,32 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if let Err(err) = res {
         println!("{:?}", err);
-        return Ok(());
     }
 
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Duration) -> io::Result<()> {
+
+async fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: App,
+    tick_rate: Duration,
+) -> io::Result<()> {
     let mut last_tick = Instant::now();
 
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
-        let timeout = tick_rate
-            .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
+        // let timeout = tick_rate
+        //     .checked_sub(last_tick.elapsed())
+        //     .unwrap_or_else(|| Duration::from_secs(0));
 
-        let pane = &mut app.panes[app.pane_index];
+        // let pane_index = app.pane_index;
+        // let panes = &mut app.panes;
+        let mut pane = &mut app.panes[app.pane_index];
+        // let mut pane = &mut app.pane;
         if let None = pane.state.selected() { pane.next(); }
 
-        if crossterm::event::poll(timeout)? {
+        if crossterm::event::poll(Duration::from_secs(0))? {
             if let Event::Key(key) = event::read()? {
                 match pane.action.clone() {
                     MenuAction::ShowAccountInfo(account) => {
@@ -174,7 +271,28 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
                                match pane.account_name.len() {
                                    0 => {},
-                                   _ => pane.save_account(),
+                                   _ => {
+                                       let account = app.menu.save_account(
+                                           pane.clone().account_name,
+                                           identity);
+                                       pane.update_full_menu(app.menu.items.clone());
+                                       pane.action = MenuAction::ShowAccountDown(account.clone());
+                                       pane.group = MenuGroup::Account(account.clone());
+
+                                       let item = MenuItem {
+                                           title: pane.account_name.clone(),
+                                           action: pane.action.clone(),
+                                           group: pane.group.clone(),
+                                       };
+                                       let mut path = pane.path.clone();
+                                       path.push(item.to_owned());
+                                       pane.path = path;
+
+                                       pane.generate_account = false;
+                                       pane.account_name = String::from("");
+                                       pane.state.select(None);
+                                       pane.update_pane_menu();
+                                   },
                                }
                            },
                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
@@ -196,7 +314,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                             KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
                                 match pane.account_address.len() {
                                     0 => {},
-                                    _ => pane.save_to_whitelist(),
+                                    _ => {
+                                        app.menu.save_to_whitelist(pane.clone().account_address, account);
+                                        pane.update_full_menu(app.menu.items.clone());
+                                    },
                                 }
                             },
                             KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
@@ -218,7 +339,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                             KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
                                 match pane.account_address.len() {
                                     0 => {},
-                                    _ => pane.save_to_blacklist(),
+                                    _ => {
+                                        app.menu.save_to_blacklist(pane.clone().account_address, account);
+                                        pane.update_full_menu(app.menu.items.clone());
+                                    },
                                 }
                             },
                             KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
@@ -239,8 +363,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                                     _ => app.remove_pane(),
                                 }
                             },
-                            KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Char('n')} => app.next_pane(),
-                            KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Char('p')} => app.prev_pane(),
+                            KeyEvent {
+                                modifiers: KeyModifiers::NONE,
+                                code: KeyCode::Right | KeyCode::Char('n') | KeyCode::Tab
+                            } => app.next_pane(),
+                            KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Left | KeyCode::Char('p')} => app.prev_pane(),
                             KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Esc} => {
                                 match pane.state.selected() {
                                     Some(_) => pane.state.select(None),
@@ -249,9 +376,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
                             },
                             KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Down | KeyCode::Char('j')} => {
                                 pane.next();
+                                let new_pane = &mut app.panes[app.pane_index];
+                                new_pane.update_full_menu(app.menu.items.clone());
                             },
                             KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Up | KeyCode::Char('k')} => {
                                 pane.previous();
+                                let new_pane = &mut app.panes[app.pane_index];
+                                new_pane.update_full_menu(app.menu.items.clone());
                             },
                             KeyEvent { modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
                                 pane.select();
@@ -265,7 +396,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, tick_rate: Dura
         }
 
         if last_tick.elapsed() >= tick_rate {
-            app.on_tick();
+            app.on_tick().await;
             last_tick = Instant::now();
         }
     }
@@ -296,25 +427,45 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 Style::default(),
             ),
             Span::raw(": "),
-            Span::styled(
-                "connected",
-                Style::default().fg(GREEN_200),
-            ),
+            match app.clone().connection_status {
+                ConnectionStatus::Success => Span::styled(
+                    "connected",
+                    Style::default().fg(GREEN_200),
+                ),
+                ConnectionStatus::Error => Span::styled(
+                    "error",
+                    Style::default().fg(RED_200),
+                ),
+                ConnectionStatus::Pending => Span::styled(
+                    "loading...",
+                    Style::default(),
+                )
+            },
         ]),
     ];
 
     let height =vec![
-        Spans::from(vec![
-            Span::styled(
-                "Height",
-                Style::default(),
-            ),
-            Span::raw(": "),
-            Span::styled(
-                "1107",
-                Style::default(),
-            ),
-        ]),
+        Spans::from(
+            match app.connection_status {
+                ConnectionStatus::Success => {
+                    vec![
+                        Span::styled(
+                            "Height",
+                            Style::default(),
+                        ),
+                        Span::raw(": "),
+                        Span::styled(
+                            match app.height {
+                                Some(h) => h.to_string(),
+                                None => "Loading...".to_string(),
+                            },
+                            Style::default(),
+                        )
+                    ]
+                },
+                _ => {vec![]}
+            }
+        ),
     ];
 
     let stats_layout = Layout::default()
@@ -348,7 +499,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints(constraints)
         .split(main_area[1]);
 
-    for (i, p) in app.panes.iter().enumerate() {
+    // for (i, p) in app.panes.iter().enumerate() {
+    for i in 0..app.panes.len() {
+        let p = &mut app.panes[i];
 
         let layout = Layout::default()
             .direction(Direction::Vertical)
@@ -356,10 +509,24 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             .constraints([Constraint::Percentage(100)])
             .split(panes[i]);
 
-        // let list = p.list(:w
-        // p.clone().tree.menu);
-        let menu = ui::list_menu(p.clone());
-        let title = p.path.last().unwrap().clone().title;
+        let pane_menu = Pane::filter_menu(
+            app.menu.items.clone(),
+            p.group.clone(),
+        );
+        let menu = ui::list_menu(pane_menu);
+
+        let mut title = String::from("Select Identity");
+        for (i, item) in p.path.clone().iter().enumerate() {
+            if i == 0 {
+                title = format!("/ {}", String::from(item.title.clone()))
+            } else {
+                title = format!(
+                    "{} / {}",
+                    title.clone(),
+                    String::from(item.title.clone())
+                );
+            }
+        }
         let active = app.pane_index.eq(&i);
         f.render_widget(ui::container(title, active), panes[i]);
         f.render_stateful_widget(menu, layout[0], &mut p.clone().state);

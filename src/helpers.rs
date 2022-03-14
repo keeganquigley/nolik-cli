@@ -3,7 +3,7 @@ use tui::{
 };
 
 pub fn account_edit_rect(r: Rect) -> Rect {
-    let percent_x = 60;
+    let percent_x = 80;
     let percent_y = 20;
 
     let popup_layout = Layout::default()

@@ -15,7 +15,7 @@ use tui::{
 // use sp_keyring::AccountKeyring;
 
 use crate::material::color::{GREY_50, GREY_800, BLUE_200};
-use crate::pane::{Pane, MenuAction};
+use crate::menu::{MenuAction, MenuItem};
 
 pub fn container(title: String, active: bool) -> Block<'static> {
     Block::default()
@@ -29,11 +29,9 @@ pub fn container(title: String, active: bool) -> Block<'static> {
         })
 }
 
-pub fn list_menu(pane: Pane) -> List<'static> {
-    let list: Vec<ListItem> = pane
-        .menu
+pub fn list_menu(pane_menu: Vec<MenuItem>) -> List<'static> {
+    let list: Vec<ListItem> = pane_menu
         .iter()
-        // .filter(|item| item.group.eq(&pane.group))
         .map(|i| {
             let lines = vec![
                 Spans::from(

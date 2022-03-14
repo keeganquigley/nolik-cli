@@ -11,15 +11,32 @@ crossterm = "0.22"
 unicode-width = "0.1.5"
 
 codec = { package = "parity-scale-codec", features = ["derive"], version = "2.0.0" }
-sp-core = { version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-keyring = { version = "5.0.0", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
+#hyper = { version = "0.14", features = ["full"] }
 sodiumoxide = "0.2.7"
 clipboard = "0.5.0"
+
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-std = { version = "1.9.0", features = ["attributes", "tokio1"] }
+subxt = "0.18.1"
+bs58 = "0.4.0"
+
+#async-lock = "2.5.0"
+#tokio = "1.17.0"
+#futures-util = "0.3.21"
+#futures-channel = "0.3.21"
+#tokio-tungstenite = "*"
+##async-std = "1.10.0"
+#log = "0.4.14"
+#env_logger = "0.9.0"
+#substrate-api-client = { git = "https://github.com/scs/substrate-api-client.git" }
 #zeroize = "1.5.2"
 #rand_core = { version = "0.6", features = ["getrandom"] }
 #crypto_box = "0.7.1"
 #ed25519-compact = "0.1"
 #hex = "0.4"
 #base64 = "0.13.0"
-bs58 = "0.4.0"
