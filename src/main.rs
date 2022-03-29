@@ -7,8 +7,6 @@ use clipboard::{ClipboardProvider, ClipboardContext};
 use std::{error::Error, io};
 use std::time::{Duration, Instant};
 
-// use log;
-// use env_logger;
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
@@ -24,19 +22,22 @@ use tui::widgets::{Paragraph};
 use unicode_width::UnicodeWidthStr;
 use serde::{Serialize, Deserialize};
 
-mod helpers;
+use parity_scale_codec::{Decode, Encode};
+
 mod material;
-use crate::material::color::{BLUE_200, GREEN_200, GREY_800, RED_200};
+use crate::material::color::{BLUE_200, GREEN_200, GREY_800, RED_200, RED_400};
 
 mod config;
 use crate::config::constants::MAX_PANES;
 
 mod pane;
-use crate::pane::Pane;
+use crate::pane::{Pane, ComposeFocus};
 
 mod ui;
 mod menu;
-use crate::menu::{Menu, MenuAction, MenuGroup, MenuItem};
+mod rpc;
+
+use crate::menu::{Menu, MenuAction};
 
 
 #[derive(Clone)]
@@ -83,6 +84,12 @@ struct NodeRequest {
     jsonrpc: String,
     method: String,
     params: Vec<String>,
+}
+
+#[derive(Encode, Decode, Debug)]
+struct Kitty {
+    id: [u8; 32],
+    price: u128,
 }
 
 
@@ -149,7 +156,6 @@ impl App {
         self.panes[self.pane_index.clone()].state.select(None);
 
         let mut panes = self.panes.clone();
-        // panes.insert(self.pane_index + 1, Pane::new(&self.menu.items));
         panes.insert(self.pane_index + 1, Pane::new());
         self.panes = panes.clone();
         self.pane_index += 1;
@@ -217,6 +223,7 @@ async fn run_app<B: Backend>(
 ) -> io::Result<()> {
     let mut last_tick = Instant::now();
 
+
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
         // let timeout = tick_rate
@@ -226,7 +233,6 @@ async fn run_app<B: Backend>(
         // let pane_index = app.pane_index;
         // let panes = &mut app.panes;
         let mut pane = &mut app.panes[app.pane_index];
-        // let mut pane = &mut app.pane;
         if let None = pane.state.selected() { pane.next(); }
 
         if crossterm::event::poll(Duration::from_secs(0))? {
@@ -254,7 +260,7 @@ async fn run_app<B: Backend>(
                                 pane.account_info = false;
                                 pane.action = MenuAction::ShowAccountDown(account);
                             },
-                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace }=> {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
                                 pane.account_name.pop();
                             },
 
@@ -272,33 +278,26 @@ async fn run_app<B: Backend>(
                                match pane.account_name.len() {
                                    0 => {},
                                    _ => {
-                                       let account = app.menu.save_account(
+                                       let account_res = app.menu.save_account(
                                            pane.clone().account_name,
-                                           identity);
-                                       pane.update_full_menu(app.menu.items.clone());
-                                       pane.action = MenuAction::ShowAccountDown(account.clone());
-                                       pane.group = MenuGroup::Account(account.clone());
+                                           identity).await;
 
-                                       let item = MenuItem {
-                                           title: pane.account_name.clone(),
-                                           action: pane.action.clone(),
-                                           group: pane.group.clone(),
-                                       };
-                                       let mut path = pane.path.clone();
-                                       path.push(item.to_owned());
-                                       pane.path = path;
-
-                                       pane.generate_account = false;
-                                       pane.account_name = String::from("");
-                                       pane.state.select(None);
-                                       pane.update_pane_menu();
+                                       match account_res {
+                                           Ok(account) => {
+                                               pane.update_full_menu(app.menu.items.clone());
+                                               pane.on_account_save(account);
+                                           },
+                                           Err(e) => {
+                                               println!("ERR {:?}", e)
+                                           }
+                                       }
                                    },
                                }
                            },
                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
                                pane.account_name.push(c);
                            },
-                           KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace }=> {
+                           KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
                                pane.account_name.pop();
                            },
                            _ => {}
@@ -315,15 +314,26 @@ async fn run_app<B: Backend>(
                                 match pane.account_address.len() {
                                     0 => {},
                                     _ => {
-                                        app.menu.save_to_whitelist(pane.clone().account_address, account);
-                                        pane.update_full_menu(app.menu.items.clone());
+                                        let res = app.menu.save_to_whitelist(
+                                            pane.clone().account_address,
+                                            account.clone()).await;
+
+                                        match res {
+                                            Ok(_) => {
+                                                pane.update_full_menu(app.menu.items.clone());
+                                                pane.on_save_to_whitelist(account);
+                                            },
+                                            Err(e) => {
+                                                println!("ERR {:?}", e)
+                                            }
+                                        }
                                     },
                                 }
                             },
                             KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
                                 pane.account_address.push(c);
                             },
-                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace }=> {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
                                 pane.account_address.pop();
                             },
                             _ => {}
@@ -340,15 +350,98 @@ async fn run_app<B: Backend>(
                                 match pane.account_address.len() {
                                     0 => {},
                                     _ => {
-                                        app.menu.save_to_blacklist(pane.clone().account_address, account);
-                                        pane.update_full_menu(app.menu.items.clone());
+
+                                        let res = app.menu.save_to_blacklist(
+                                            pane.clone().account_address,
+                                            account.clone()).await;
+
+                                        match res {
+                                            Ok(_) => {
+                                                pane.update_full_menu(app.menu.items.clone());
+                                                pane.on_save_to_blacklist(account);
+                                            },
+                                            Err(e) => {
+                                                println!("ERR {:?}", e)
+                                            }
+                                        }
                                     },
                                 }
                             },
                             KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
                                 pane.account_address.push(c);
                             },
-                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace }=> {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
+                                pane.account_address.pop();
+                            },
+                            _ => {}
+                        }
+                    },
+                    MenuAction::ComposeMessage(account) => {
+                        match key {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Esc} => {
+                                pane.compose_message = false;
+                                pane.recipient = String::from("");
+                                pane.message = String::from("");
+                                pane.action = MenuAction::ShowAccountDown(account);
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char('m')} => {
+                                pane.action = MenuAction::EditMessage(account);
+                                pane.compose_focus = Some(ComposeFocus::Message);
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char('r')} => {
+                                pane.action = MenuAction::EditRecipient(account);
+                                pane.compose_focus = Some(ComposeFocus::Recipient);
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
+                                if pane.recipient.len() == 0 {
+                                    pane.recipient_error = true;
+                                }
+
+                                if pane.message.len() == 0 {
+                                    pane.message_error = true;
+                                }
+                            },
+                            _ => {}
+                        }
+                    },
+                    MenuAction::EditRecipient(account) => {
+                        match key {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Esc} => {
+                                pane.recipient = String::from("");
+                                pane.action = MenuAction::ComposeMessage(account);
+                                pane.compose_focus = None;
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
+                                pane.recipient.push(c);
+                                pane.recipient_error = false;
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
+                                pane.action = MenuAction::ComposeMessage(account);
+                                pane.compose_focus = None;
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
+                                pane.account_address.pop();
+                            },
+                            _ => {}
+                        }
+                    },
+                    MenuAction::EditMessage(account) => {
+                        match key {
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Esc} => {
+                                pane.recipient = String::from("");
+                                pane.action = MenuAction::ComposeMessage(account);
+                                pane.compose_focus = None;
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE | KeyModifiers::SHIFT, code: KeyCode::Char(c)} => {
+                                pane.message.push(c);
+                                pane.message_error = false;
+                            },
+
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Enter} => {
+                                pane.action = MenuAction::ComposeMessage(account);
+                                pane.compose_focus = None;
+                            },
+                            KeyEvent{ modifiers: KeyModifiers::NONE, code: KeyCode::Backspace } => {
                                 pane.account_address.pop();
                             },
                             _ => {}
@@ -417,7 +510,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(3)
         ])
         .split(f.size());
-
 
 
     let status =vec![
@@ -534,7 +626,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         if p.generate_account {
             let block = Block::default()
                 .style(Style::default().bg(GREY_800));
-            let area = helpers::account_edit_rect(layout[0]);
+            let area = ui::account_edit_rect(layout[0]);
             f.render_widget(Clear, area); //this clears out the background
             f.render_widget(block, area);
 
@@ -566,7 +658,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .style(Style::default().bg(GREY_800));
-            let area = helpers::account_info_rect(layout[0]);
+            let area = ui::account_info_rect(layout[0]);
             f.render_widget(Clear, area); //this clears out the background
             f.render_widget(block, area);
 
@@ -618,7 +710,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         if p.add_to_whitelist {
             let block = Block::default()
                 .style(Style::default().bg(GREY_800));
-            let area = helpers::account_edit_rect(layout[0]);
+            let area = ui::account_edit_rect(layout[0]);
             f.render_widget(Clear, area); //this clears out the background
             f.render_widget(block, area);
 
@@ -646,7 +738,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         if p.add_to_blacklist {
             let block = Block::default()
                 .style(Style::default().bg(GREY_800));
-            let area = helpers::account_edit_rect(layout[0]);
+            let area = ui::account_edit_rect(layout[0]);
             f.render_widget(Clear, area); //this clears out the background
             f.render_widget(block, area);
 
@@ -670,6 +762,103 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 input_area[0].y + 1,
             )
         }
+
+        if p.compose_message {
+            let block = Block::default()
+                .style(Style::default().bg(GREY_800));
+            let area = ui::compose_message_rect(layout[0]);
+            f.render_widget(Clear, area); //this clears out the background
+            f.render_widget(block, area);
+
+            let input_area = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Min(1),
+                ].as_ref())
+                .split(area);
+
+            let recipient_input = Paragraph::new(p.recipient.as_ref())
+                .style(Style::default())
+                .block(Block::default()
+                           .borders(Borders::ALL)
+                           .border_style(
+                               match p.recipient_error {
+                                   true => Style::default().fg(RED_400),
+                                   false => Style::default(),
+                               })
+                           .title(" Recipient "),
+                );
+            f.render_widget(recipient_input, input_area[0]);
+
+            let message_input = Paragraph::new(p.message.as_ref())
+                .style(Style::default())
+                .block(Block::default()
+                           .borders(Borders::ALL)
+                           .border_style(
+                               match p.message_error {
+                                   true => Style::default().fg(RED_400),
+                                   false => Style::default(),
+                               })
+                           .title(" New Message "),
+                );
+            f.render_widget(message_input, input_area[1]);
+
+            if let Some(focus) = p.clone().compose_focus {
+                let section: usize = match focus {
+                    ComposeFocus::Recipient => 0,
+                    ComposeFocus::Message => 1,
+                };
+
+                let x_coord = match focus {
+                    ComposeFocus::Recipient => p.recipient.width() as u16 + 1,
+                    ComposeFocus::Message => p.message.width() as u16 + 1,
+                };
+
+                f.set_cursor(
+                    input_area[section].x + x_coord,
+                    input_area[section].y + 1,
+                )
+            };
+
+        }
+
+        // if p.errors.len() > 0 {
+        //     let block = Block::default()
+        //         .style(Style::default().bg(RED_400));
+        //     let area = ui::error_rect(layout[0]);
+        //     f.render_widget(Clear, area); //this clears out the background
+        //     f.render_widget(block, area);
+        //
+        //     let input_area = Layout::default()
+        //         .direction(Direction::Vertical)
+        //         .margin(1)
+        //         .constraints([
+        //             Constraint::Percentage(100)
+        //         ].as_ref())
+        //         .split(area);
+        //
+        //     // let error_message = Paragraph::new(p.account_address.as_ref())
+        //     //     .style(Style::default())
+        //     //     .block(Block::default()
+        //     //                .borders(Borders::ALL)
+        //     //                .title(" Error "),
+        //     //     );
+        //     // f.render_widget(error_message, input_area[0]);
+        //     //
+        //     let mut errors = vec![];
+        //     for error in p.errors.iter() {
+        //         errors.push(
+        //             Spans::from(vec![
+        //                 Span::raw(error),
+        //             ]),
+        //         )
+        //     }
+        //     let error_messages = Paragraph::new(errors)
+        //         .style(Style::default()).alignment(Alignment::Left);
+        //     f.render_widget(error_messages, input_area[0]);
+        // }
     }
 
     let commands_normal =vec![
@@ -819,6 +1008,68 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ])
     ];
 
+    let commands_compose_message = vec![
+        Spans::from(vec![
+            Span::styled(
+                "<Esc>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Cancel",
+                Style::default(),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                "<R>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Edit Recipient",
+                Style::default(),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                "<M>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Edit Message",
+                Style::default(),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                "<Enter>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Send Message",
+                Style::default(),
+            ),
+        ])
+    ];
+
+
+    let commands_compose_edit_recipient_or_message = vec![
+        Spans::from(vec![
+            Span::styled(
+                "<Esc>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Cancel",
+                Style::default(),
+            ),
+            Span::raw(" "),
+            Span::styled(
+                "<Enter>",
+                Style::default().fg(GREY_800).bg(BLUE_200)
+            ),
+            Span::styled(
+                " Save",
+                Style::default(),
+            ),
+        ])
+    ];
 
     let commands_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -838,6 +1089,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             MenuAction::GenerateAccount(_) => commands_account_editing,
             MenuAction::AddToWhiteList(_) => commands_add_to_whitelist,
             MenuAction::AddToBlackList(_) => commands_add_to_blacklist,
+            MenuAction::ComposeMessage(_) => commands_compose_message,
+            MenuAction::EditRecipient(_) | MenuAction::EditMessage(_) => commands_compose_edit_recipient_or_message,
             _ => commands_normal,
         })
         .style(Style::default())

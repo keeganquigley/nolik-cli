@@ -1,18 +1,9 @@
-// use crossterm::{
-//     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
-//     execute,
-//     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-// };
 use tui::{
-    layout::Alignment,
+    layout::{Constraint, Direction, Layout, Rect, Alignment},
     style::{Style},
     text::{Span, Spans},
     widgets::{Block, BorderType, Borders, List, ListItem},
-    // Frame, Terminal,
 };
-
-// use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
-// use sp_keyring::AccountKeyring;
 
 use crate::material::color::{GREY_50, GREY_800, BLUE_200};
 use crate::menu::{MenuAction, MenuItem};
@@ -58,3 +49,113 @@ pub fn list_menu(pane_menu: Vec<MenuItem>) -> List<'static> {
     List::new(list)
         .highlight_style(Style::default().fg(GREY_800).bg(BLUE_200))
 }
+
+pub fn account_edit_rect(r: Rect) -> Rect {
+    let percent_x = 80;
+    let percent_y = 20;
+
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Length(5),
+                Constraint::Min(1),
+            ]
+                .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ].as_ref(),
+        )
+        .split(popup_layout[1])[1]
+}
+
+pub fn account_info_rect(r: Rect) -> Rect {
+    let percent_x = 80;
+    let percent_y = 20;
+
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Length(9),
+                Constraint::Min(1),
+            ]
+                .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ].as_ref(),
+        )
+        .split(popup_layout[1])[1]
+}
+
+pub fn compose_message_rect(r: Rect) -> Rect {
+    let percent_x = 80;
+    let percent_y = 40;
+
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ].as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ].as_ref(),
+        )
+        .split(popup_layout[1])[1]
+}
+
+// pub fn error_rect(r: Rect) -> Rect {
+//     let percent_x = 60;
+//     let percent_y = 10;
+//
+//     let popup_layout = Layout::default()
+//         .direction(Direction::Vertical)
+//         .constraints(
+//             [
+//                 Constraint::Percentage((100 - percent_y) / 2),
+//                 Constraint::Percentage(percent_y),
+//                 Constraint::Percentage((100 - percent_y) / 2),
+//             ].as_ref(),
+//         )
+//         .split(r);
+//
+//     Layout::default()
+//         .direction(Direction::Horizontal)
+//         .constraints(
+//             [
+//                 Constraint::Percentage((100 - percent_x) / 2),
+//                 Constraint::Percentage(percent_x),
+//                 Constraint::Percentage((100 - percent_x) / 2),
+//             ].as_ref(),
+//         )
+//         .split(popup_layout[1])[1]
+// }

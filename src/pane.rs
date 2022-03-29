@@ -1,7 +1,13 @@
 use tui::{widgets::ListState};
 use crate::Menu;
-use crate::menu::{MenuItem, MenuAction, MenuGroup};
+use crate::menu::{MenuItem, MenuAction, MenuGroup, Account};
 
+
+#[derive(Clone, Debug)]
+pub enum ComposeFocus {
+    Recipient,
+    Message,
+}
 
 #[derive(Clone, Debug)]
 pub struct Pane {
@@ -17,6 +23,11 @@ pub struct Pane {
     pub import_seed: String,
     pub account_info: bool,
     pub compose_message: bool,
+    pub compose_focus: Option<ComposeFocus>,
+    pub recipient: String,
+    pub recipient_error: bool,
+    pub message: String,
+    pub message_error: bool,
     pub show_inbox: bool,
     pub show_sent: bool,
     pub account_address: String,
@@ -39,6 +50,11 @@ impl Pane {
             import_seed: String::from(""),
             account_info: false,
             compose_message: false,
+            compose_focus: None,
+            recipient: String::from(""),
+            recipient_error: false,
+            message: String::from(""),
+            message_error: false,
             show_inbox: false,
             show_sent: false,
             account_address: String::from(""),
@@ -96,8 +112,8 @@ impl Pane {
                     self.generate_account = true;
                 },
                 MenuAction::ImportAccount(_) => {
+                    self.action = item.clone().action;
                     self.import_account = true;
-                    // self.import_seed = Str
                 },
                 MenuAction::ShowAccountInfo(_) => {
                     self.action = item.clone().action;
@@ -108,11 +124,6 @@ impl Pane {
                     path.pop();
                     self.path = path;
                 },
-                // MenuAction::ShowAccountDown(_) => {
-                //     // let mut path = self.path.clone();
-                //     // path.pop();
-                //     // self.path = path;
-                // },
                 MenuAction::ComposeMessage(_) => {
                     self.action = item.clone().action;
                     self.compose_message = true;
@@ -176,5 +187,39 @@ impl Pane {
 
     pub fn filter_menu(menu_items: Vec<MenuItem>, group: MenuGroup) -> Vec<MenuItem> {
         menu_items.iter().filter(|item| item.group.eq(&group)).cloned().collect()
+    }
+
+    pub fn on_account_save(&mut self, account: Account) {
+        self.action = MenuAction::ShowAccountDown(account.clone());
+        self.group = MenuGroup::Account(account.clone());
+
+        let item = MenuItem {
+            title: self.account_name.clone(),
+            action: self.action.clone(),
+            group: self.group.clone(),
+        };
+        let mut path = self.path.clone();
+        path.push(item.to_owned());
+        self.path = path;
+
+        self.generate_account = false;
+        self.account_name = String::from("");
+        self.state.select(None);
+
+        self.update_pane_menu();
+    }
+
+    pub fn on_save_to_whitelist(&mut self, account: Account) {
+        self.action = MenuAction::ShowWhiteList(account);
+        self.add_to_whitelist = false;
+        self.account_address = String::from("");
+        self.state.select(None);
+    }
+
+    pub fn on_save_to_blacklist(&mut self, account: Account) {
+        self.action = MenuAction::ShowBlackList(account);
+        self.add_to_blacklist = false;
+        self.account_address = String::from("");
+        self.state.select(None);
     }
 }

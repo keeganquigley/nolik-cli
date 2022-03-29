@@ -1,7 +1,7 @@
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use sp_keyring::AccountKeyring;
-
+use crate::rpc::{extrinsics, calls};
 
 #[derive(Clone, Eq, PartialEq, Debug, Copy)]
 pub struct Identity {
@@ -33,6 +33,8 @@ pub enum MenuAction {
     ShowAccountUp(Account),
     ShowAccountDown(Account),
     ComposeMessage(Account),
+    EditRecipient(Account),
+    EditMessage(Account),
     ShowAccountInfo(Account),
     ShowInbox(Account),
     ShowSent(Account),
@@ -41,7 +43,7 @@ pub enum MenuAction {
     AddToWhiteList(Account),
     AddToBlackList(Account),
     ShowWhiteListItem(Account),
-    ShowBlackListItem(Account,)
+    ShowBlackListItem(Account),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -187,23 +189,34 @@ impl Menu {
         }
     }
 
-    pub fn save_account(&mut self, title: String, identity: Identity) -> Account {
+    pub async fn save_account(&mut self, title: String, identity: Identity) -> Result<Account, Box<dyn std::error::Error>> {
         let (public_key, secret_key) = box_::gen_keypair();
         let account = Account {
             identity: identity.clone(),
             pair: (public_key, secret_key),
         };
 
-        let menu_item = Menu::account_menu_items(
-            title,
-            account.clone(),
-        );
 
-        let mut menu_items = self.items.clone();
-        menu_items.extend(menu_item);
-        self.items = menu_items;
+        let address: Vec<u8> = sp_core::blake2_128(public_key.as_ref()).as_ref().into();
+        let xt = extrinsics::add_owner(identity.pair.clone(), address).await;
 
-        account
+        let call = calls::call_extrinsic(xt).await;
+
+        match call {
+            Ok(_res) => {
+                let menu_item = Menu::account_menu_items(
+                    title,
+                    account.clone(),
+                );
+
+                let mut menu_items = self.items.clone();
+                menu_items.extend(menu_item);
+                self.items = menu_items;
+
+                Ok(account)
+            },
+            Err(e) => Err(String::from(e.to_string()).into())
+        }
     }
 
     // pub fn new_account(title: String, identity: Identity) -> Vec<MenuItem> {
@@ -219,25 +232,59 @@ impl Menu {
     //     )
     // }
 
-    pub fn save_to_whitelist(&mut self, title: String, account: Account) {
-        let menu_item = Menu::whitelist_items(
-            title,
-            account,
-        );
+    pub async fn save_to_whitelist(&mut self, title: String, account: Account) -> Result<(), Box<dyn std::error::Error>> {
 
-        let mut menu_items = self.items.clone();
-        menu_items.extend(menu_item);
-        self.items = menu_items;
+        let address_bytes: Vec<u8> = bs58::decode(title.clone()).into_vec().unwrap();
+
+        let add_to: Vec<u8> = sp_core::blake2_128(account.pair.0.as_ref()).as_ref().into();
+        let new_address: Vec<u8> = sp_core::blake2_128(address_bytes.as_ref()).as_ref().into();
+        let xt = extrinsics::add_to_whitelist(account.identity.pair.clone(), add_to, new_address).await;
+
+        let call = calls::call_extrinsic(xt).await;
+
+        match call {
+            Ok(_res) => {
+
+                let menu_item = Menu::whitelist_items(
+                    title,
+                    account,
+                );
+
+                let mut menu_items = self.items.clone();
+                menu_items.extend(menu_item);
+                self.items = menu_items;
+
+                Ok(())
+            },
+            Err(e) => Err(String::from(e.to_string()).into())
+        }
     }
 
-    pub fn save_to_blacklist(&mut self, title: String, account: Account) {
-        let menu_item = Menu::blacklist_items(
-            title,
-            account,
-        );
+    pub async fn save_to_blacklist(&mut self, title: String, account: Account) -> Result<(), Box<dyn std::error::Error>>{
 
-        let mut menu_items = self.items.clone();
-        menu_items.extend(menu_item);
-        self.items = menu_items;
+        let address_bytes: Vec<u8> = bs58::decode(title.clone()).into_vec().unwrap();
+
+        let add_to: Vec<u8> = sp_core::blake2_128(account.pair.0.as_ref()).as_ref().into();
+        let new_address: Vec<u8> = sp_core::blake2_128(address_bytes.as_ref()).as_ref().into();
+        let xt = extrinsics::add_to_blacklist(account.identity.pair.clone(), add_to, new_address).await;
+
+        let call = calls::call_extrinsic(xt).await;
+
+        match call {
+            Ok(_res) => {
+
+                let menu_item = Menu::blacklist_items(
+                    title,
+                    account,
+                );
+
+                let mut menu_items = self.items.clone();
+                menu_items.extend(menu_item);
+                self.items = menu_items;
+
+                Ok(())
+            },
+            Err(e) => Err(String::from(e.to_string()).into())
+        }
     }
 }
