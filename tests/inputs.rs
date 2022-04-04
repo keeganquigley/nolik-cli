@@ -1,9 +1,9 @@
 
 #[cfg(test)]
 mod inputs {
+
     use nolik_cli::{Config, Flags, Flag, FlagKey, get_flag_values};
     use nolik_cli::inputs::errors::InputError;
-    // use super::*;
 
     #[test]
     fn unrecognised_command() {
@@ -96,7 +96,7 @@ mod inputs {
         flags.push(flag);
 
         assert_eq!(
-            vec![String::from("bob")],
+            vec![String::from("alice")],
             get_flag_values(FlagKey::Name, flags).unwrap(),
         );
     }
