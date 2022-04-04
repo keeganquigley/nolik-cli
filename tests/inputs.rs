@@ -96,7 +96,7 @@ mod inputs {
         flags.push(flag);
 
         assert_eq!(
-            vec![String::from("alice")],
+            vec![String::from("bob")],
             get_flag_values(FlagKey::Name, flags).unwrap(),
         );
     }
