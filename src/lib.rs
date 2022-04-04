@@ -1,16 +1,16 @@
-mod constants;
+pub mod inputs;
+mod rpc;
 mod wallet;
-mod flag_validation;
-pub mod errors;
 
-
-use constants::{commands, flags};
 use std::error::Error;
 use std::slice::Iter;
 use sp_keyring::AccountKeyring;
-use crate::flag_validation::Rules;
-use errors::Error as ErrorType;
-use crate::wallet::Wallet;
+use inputs::{
+    constants::{commands, flags},
+    errors::InputError,
+    rules::Rules,
+};
+use wallet::Wallet;
 
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -35,12 +35,12 @@ enum Command {
 }
 
 #[derive(Debug, PartialEq)]
-struct Flag {
-    key: FlagKey,
-    value: String,
+pub struct Flag {
+    pub key: FlagKey,
+    pub value: String,
 }
 
-type Flags = Vec<Flag>;
+pub type Flags = Vec<Flag>;
 
 #[derive(Debug)]
 pub struct Config {
@@ -50,9 +50,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(mut args: Iter<String>) -> Result<Config, ErrorType> {
-        // args.next();
-
+    pub fn new(mut args: Iter<String>) -> Result<Config, InputError> {
         let (command, rules) = match args.next() {
             Some(command) => {
                 match args.next() {
@@ -62,13 +60,13 @@ impl Config {
                             commands::ADD_ACCOUNT => (Command::AddAccount, Rules::add_account()),
                             commands::DELETE_WALLET => (Command::DeleteWallet, Rules::delete_wallet()),
                             commands::DELETE_ACCOUNT => (Command::DeleteAccount, Rules::delete_account()),
-                            _ => return Err(ErrorType::UnrecognisedCommand)
+                            _ => return Err(InputError::UnrecognisedCommand)
                         }
                     },
-                    None => return Err(ErrorType::NotEnoughArguments)
+                    None => return Err(InputError::NotEnoughArguments)
                 }
             },
-            None => return Err(ErrorType::NoArguments)
+            None => return Err(InputError::NoArguments)
         };
 
         let mut flags: Vec<Flag> = Vec::new();
@@ -84,7 +82,7 @@ impl Config {
                         flags::IMPORT | flags::I => FlagKey::Import,
                         flags::KEYRING | flags::K => FlagKey::Keyring,
                         flags::OUTPUT | flags::O => FlagKey::Output,
-                        _ => return Err(ErrorType::UnrecognisedFlag)
+                        _ => return Err(InputError::UnrecognisedFlag)
                     };
 
                     let flag = Flag {
@@ -94,7 +92,7 @@ impl Config {
 
                     flags.push(flag);
                 },
-                None => return Err(ErrorType::NoCorrespondingValue)
+                None => return Err(InputError::NoCorrespondingValue)
             };
         };
 
@@ -124,7 +122,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             let wallet = Wallet::new(pair, name);
 
             Wallet::add(wallet);
-            // println!("Wallet {:?}", wallet);
+            // println!("Wallet {:?}", asd);
         }
         Command::DeleteWallet => {}
         Command::AddAccount => {}
@@ -134,7 +132,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 
-fn validate_flags(config: &Config) -> Result<(), ErrorType> {
+fn validate_flags(config: &Config) -> Result<(), InputError> {
     if let Err(e) = validate_on_missing_keys(config) { return Err(e) }
     if let Err(e) = validate_invalid_flags(config) { return Err(e) }
     if let Err(e) = validate_on_non_unique_keys(config) { return Err(e) }
@@ -142,7 +140,7 @@ fn validate_flags(config: &Config) -> Result<(), ErrorType> {
     Ok(())
 }
 
-fn validate_on_missing_keys(config: &Config) -> Result<(), ErrorType> {
+fn validate_on_missing_keys(config: &Config) -> Result<(), InputError> {
     let missing_keys: Vec<FlagKey> = config.rules.required_keys
         .iter()
         .filter(|key|
@@ -157,11 +155,11 @@ fn validate_on_missing_keys(config: &Config) -> Result<(), ErrorType> {
 
     match missing_keys.len() {
         0 => Ok(()),
-        _ => return Err(ErrorType::RequiredKeysMissing)
+        _ => return Err(InputError::RequiredKeysMissing)
     }
 }
 
-fn validate_invalid_flags(config: &Config) -> Result<(), ErrorType> {
+fn validate_invalid_flags(config: &Config) -> Result<(), InputError> {
     let invalid_keys: Vec<FlagKey> = config.flags
         .iter()
         .filter(|flag|
@@ -176,11 +174,11 @@ fn validate_invalid_flags(config: &Config) -> Result<(), ErrorType> {
 
     match invalid_keys.len() {
         0 => Ok(()),
-        _ => return Err(ErrorType::InvalidFlag)
+        _ => return Err(InputError::InvalidFlag)
     }
 }
 
-fn validate_on_non_unique_keys(config: &Config) -> Result<(), ErrorType> {
+fn validate_on_non_unique_keys(config: &Config) -> Result<(), InputError> {
     let non_unique_keys: Vec<FlagKey> = config.rules.unique_keys
         .iter()
         .filter(|key|
@@ -195,11 +193,11 @@ fn validate_on_non_unique_keys(config: &Config) -> Result<(), ErrorType> {
 
     match non_unique_keys.len() {
         0 => Ok(()),
-        _ => return Err(ErrorType::NonUniqueKeys)
+        _ => return Err(InputError::NonUniqueKeys)
     }
 }
 
-fn get_flag_values(flag_key: FlagKey, flags: Flags) -> Result<Vec<String>, ErrorType> {
+pub fn get_flag_values(flag_key: FlagKey, flags: Flags) -> Result<Vec<String>, InputError> {
     let mut values: Vec<String> = Vec::new();
     for flag in flags {
         if flag.key == flag_key {
@@ -208,108 +206,7 @@ fn get_flag_values(flag_key: FlagKey, flags: Flags) -> Result<Vec<String>, Error
     }
 
     match values.len() {
-        0 => return Err(ErrorType::NoSuchKey),
+        0 => return Err(InputError::NoSuchKey),
         _ => Ok(values),
-    }
-}
-
-#[cfg(test)]
-mod parser {
-    use super::*;
-
-    #[test]
-    fn unrecognised_command() {
-        let arr = ["unrecognised", "command"].map(|el| el.to_string());;
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::UnrecognisedCommand,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn not_enough_arguments() {
-        let arr = ["argument".to_string()];
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::NotEnoughArguments,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn no_arguments() {
-        let arr = [];
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::NoArguments,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn no_corresponding_value() {
-        let arr = ["add", "wallet", "--name"].map(|el| el.to_string());
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::NoCorrespondingValue,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn required_key_missing() {
-        let arr = ["add", "wallet"].map(|el| el.to_string());
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::RequiredKeysMissing,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn invalid_flags() {
-        let arr = ["add", "wallet", "--name", "alice", "--output", "value"].map(|el| el.to_string());
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::InvalidFlag,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn non_unique_key() {
-        let arr = ["add", "wallet", "--name", "alice", "--name", "alice"].map(|el| el.to_string());
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::NonUniqueKeys,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn non_unique_key_short_flags() {
-        let arr = ["add", "wallet", "-n", "alice", "-n", "alice"].map(|el| el.to_string());
-        let args = arr.iter();
-        assert_eq!(
-            ErrorType::NonUniqueKeys,
-            Config::new(args).unwrap_err()
-        );
-    }
-
-    #[test]
-    fn returns_flag_value() {
-        let mut flags: Flags = Vec::new();
-        let flag = Flag {
-            key: FlagKey::Name,
-            value: "alice".to_string(),
-        };
-
-        flags.push(flag);
-
-        assert_eq!(
-            vec![String::from("alice")],
-            get_flag_values(FlagKey::Name, flags).unwrap(),
-        );
     }
 }

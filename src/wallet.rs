@@ -1,13 +1,16 @@
-use std::fmt::format;
 use sp_core::sr25519;
 use dirs;
 use std::fs;
 use std::io::ErrorKind;
-use std::path::Path;
 
 pub struct Wallet {
     pair: sr25519::Pair,
     name: String,
+}
+
+struct Config {
+    wallets: Vec<Wallet>,
+    default: usize,
 }
 
 impl Wallet {
@@ -30,7 +33,7 @@ impl Wallet {
                 println!("RES {:?}", res);
             },
             Err(e) => {
-                if e.kind() == std::io::ErrorKind::AlreadyExists {
+                if e.kind() == ErrorKind::AlreadyExists {
                     eprintln!("Directory alreay exists");
                 }
             }
