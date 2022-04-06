@@ -1,9 +1,9 @@
 
 
 pub mod commands {
-    pub const ADD_WALLET: (&str, &str) = ("add", "asd");
+    pub const ADD_WALLET: (&str, &str) = ("add", "wallet");
     pub const ADD_ACCOUNT: (&str, &str) = ("add", "account");
-    pub const DELETE_WALLET: (&str, &str) = ("delete", "asd");
+    pub const DELETE_WALLET: (&str, &str) = ("delete", "wallet");
     pub const DELETE_ACCOUNT: (&str, &str) = ("delete", "account");
 }
 

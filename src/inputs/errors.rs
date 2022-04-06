@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use serde::ser::StdError;
 
 #[derive(PartialEq, Debug)]
 pub enum InputError {
@@ -11,6 +12,7 @@ pub enum InputError {
     InvalidFlag,
     NonUniqueKeys,
     NoSuchKey,
+    PasswordsDoNotMatch,
 }
 
 
@@ -26,6 +28,9 @@ impl Display for InputError {
             InputError::RequiredKeysMissing => f.write_str("Required keys are missing"),
             InputError::NonUniqueKeys => f.write_str("Non unique flags"),
             InputError::NoSuchKey => f.write_str("No such key"),
-        }
+            InputError::PasswordsDoNotMatch => f.write_str("Provided passwords do not match"),
+       }
     }
 }
+
+impl StdError for InputError {}
