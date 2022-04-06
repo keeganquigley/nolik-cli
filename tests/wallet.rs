@@ -11,19 +11,17 @@ mod wallet {
 
     #[test]
     fn create_new_wallet() {
-        let input = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -52,23 +50,19 @@ mod wallet {
 
     #[test]
     fn import_new_wallet() {
-        let input = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::Import,
-                    value: "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--import",
+            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -98,33 +92,17 @@ mod wallet {
 
     #[test]
     fn create_new_non_unique_name_wallet() {
-        let input_a = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
 
-        let input_b = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let args = arr.iter();
+        let input_a = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input_a).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -134,6 +112,17 @@ mod wallet {
 
         config.add_wallet(wallet).unwrap();
 
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input_b = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input_b).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -150,23 +139,19 @@ mod wallet {
 
     #[test]
     fn create_new_non_unique_phrase_wallet() {
-        let input_a = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::Import,
-                    value: "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--import",
+            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input_a = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input_a).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -176,24 +161,19 @@ mod wallet {
 
         config.add_wallet(wallet).unwrap();
 
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "bob",
+            "--import",
+            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
 
-        let input_b = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "bob".to_string(),
-                },
-                Flag {
-                    key: FlagKey::Import,
-                    value: "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let args = arr.iter();
+        let input_b = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input_b).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
@@ -210,24 +190,19 @@ mod wallet {
 
     #[test]
     fn could_not_parse_seed() {
-        let input = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::Import,
-                    value: "@ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+            "--import",
+            "#ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
+            "--with-password",
+            "no"
+        ].map(|el| el.to_string());
 
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap_err();
@@ -241,24 +216,9 @@ mod wallet {
 
     #[test]
     fn broken_config_file() {
-        let input = Input {
-            command: Command::AddWallet,
-            flags: vec![
-                Flag {
-                    key: FlagKey::Name,
-                    value: "alice".to_string(),
-                },
-                Flag {
-                    key: FlagKey::Import,
-                    value: "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT".to_string(),
-                },
-                Flag {
-                    key: FlagKey::WithPassword,
-                    value: "no".to_string(),
-                }
-            ]
-        };
-
+        let arr = ["add", "wallet", "--name", "alice", "--with-password", "no"].map(|el| el.to_string());
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
 
         let wallet_input = WalletInput::new(input).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();

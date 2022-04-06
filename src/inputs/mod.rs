@@ -77,6 +77,7 @@ impl Input {
                         flags::IMPORT | flags::I => FlagKey::Import,
                         flags::KEYRING | flags::K => FlagKey::Keyring,
                         flags::OUTPUT | flags::O => FlagKey::Output,
+                        flags::WITH_PASSWORD => FlagKey::WithPassword,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 

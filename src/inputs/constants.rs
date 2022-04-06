@@ -24,4 +24,5 @@ pub mod flags {
     pub const IMPORT: &str = "--import";
     pub const O: &str = "-o";
     pub const OUTPUT: &str = "--output";
+    pub const WITH_PASSWORD: &str = "--with-password";
 }

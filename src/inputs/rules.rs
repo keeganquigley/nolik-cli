@@ -13,7 +13,13 @@ pub struct Rules {
 impl Rules {
     pub fn new(command: &Command) -> Rules {
         match command {
-            Command::AddWallet | Command::AddAccount =>
+            Command::AddWallet =>
+                Rules {
+                    valid_keys: vec![FlagKey::Name, FlagKey::Import, FlagKey::WithPassword],
+                    required_keys: vec![FlagKey::Name],
+                    unique_keys: vec![FlagKey::Name, FlagKey::Import, FlagKey::WithPassword],
+                },
+            Command::AddAccount =>
                 Rules {
                     valid_keys: vec![FlagKey::Name, FlagKey::Import],
                     required_keys: vec![FlagKey::Name],
