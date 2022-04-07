@@ -2,7 +2,7 @@ use sp_core::{Pair, sr25519};
 use crate::config::errors::ConfigError;
 use serde_derive::{Serialize, Deserialize};
 use rpassword;
-use crate::{Config, ConfigFile, FlagKey, Input, InputError};
+use crate::{FlagKey, Input, InputError};
 
 
 pub struct WalletInput {
@@ -46,7 +46,7 @@ impl WalletInput {
 
         let password = match with_password {
             Some(_value) =>
-                match Wallet::wallet_password() {
+                match Wallet::password() {
                     Ok(password) => Some(password),
                     Err(e) => return Err(e),
                 },
@@ -114,23 +114,12 @@ impl Wallet {
         Ok(())
     }
 
-    pub fn wallet_password() -> Result<String, InputError> {
+    pub fn password() -> Result<String, InputError> {
         let password = rpassword::prompt_password("Your wallet password: ").unwrap();
         let password_again = rpassword::prompt_password("Please type your wallet password again").unwrap();
         match password.eq(&password_again) {
             true => Ok(password),
             false => return Err(InputError::PasswordsDoNotMatch)
-        }
-    }
-}
-
-impl From<&Wallet> for Wallet {
-    fn from(wallet: &Wallet) -> Self {
-        Wallet {
-            public: wallet.public.to_string(),
-            name: wallet.name.to_string(),
-            seed: wallet.seed.to_string(),
-            bs58seed: wallet.bs58seed.to_string(),
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 use serde::de::StdError;
 
 #[derive(PartialEq, Debug)]
@@ -10,6 +10,9 @@ pub enum ConfigError {
     WalletNameIsNotUnique,
     CouldNotParseSeed,
     WalletAlreadyExists,
+    AccountAlreadyExists,
+    CouldNotParseAccountSecretKey,
+    AccountNameIsNotUnique,
 }
 
 
@@ -23,6 +26,9 @@ impl Display for ConfigError {
             ConfigError::WalletNameIsNotUnique => f.write_str("Wallet name is not unique"),
             ConfigError::CouldNotParseSeed => f.write_str("Could not parse provided seed phrase"),
             ConfigError::WalletAlreadyExists => f.write_str("Wallet already exists"),
+            ConfigError::AccountAlreadyExists => f.write_str("Account already exists"),
+            ConfigError::CouldNotParseAccountSecretKey => f.write_str("Could not parse account secret key"),
+            ConfigError::AccountNameIsNotUnique => f.write_str("Account name is not unique"),
         }
     }
 }

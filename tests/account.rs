@@ -1,86 +1,83 @@
 #[cfg(test)]
-mod wallet {
+mod account {
 
     use nolik_cli::config::{errors::ConfigError, Config, ConfigFile, ConfigData};
-    use nolik_cli::wallet::{Wallet, WalletInput};
+    use nolik_cli::account::{Account, AccountInput};
     use std::fs;
     use std::io::prelude::*;
     use nolik_cli::inputs::Input;
 
+
     #[test]
-    fn create_new_wallet() {
+    fn create_new_account() {
         let arr = [
             "add",
-            "wallet",
+            "account",
             "--name",
             "alice",
-            "--with-password",
-            "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
         let mut config = Config::new(config_file.clone()).unwrap();
 
-        config.add_wallet(wallet).unwrap();
+        config.add_account(account).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
 
-        let new_wallet_len = toml_data.wallets
+        let new_account_len= toml_data.accounts
             .iter()
-            .filter(|wallet| wallet.name == "alice".to_string())
+            .filter(|account| account.name == "alice".to_string())
             .count();
 
         fs::remove_file(config_file.path).unwrap();
 
         assert_eq!(
-            new_wallet_len,
+            new_account_len,
             1,
         );
     }
 
     #[test]
-    fn import_new_wallet() {
+    fn import_new_account() {
         let arr = [
             "add",
-            "wallet",
+            "account",
             "--name",
             "alice",
             "--import",
-            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
         let mut config = Config::new(config_file.clone()).unwrap();
 
-        config.add_wallet(wallet).unwrap();
+        config.add_account(account).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
 
-        let new_wallet_len = toml_data.wallets
+        let new_account_len = toml_data.accounts
             .iter()
-            .filter(|wallet| wallet.seed == "purse quiz priority zero raccoon uphold flat observe resemble meadow teach pen".to_string())
+            .filter(|account| account.seed == "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs".to_string())
             .count();
 
         fs::remove_file(config_file.path).unwrap();
 
         assert_eq!(
-            new_wallet_len,
+            new_account_len,
             1,
         );
     }
@@ -90,45 +87,41 @@ mod wallet {
     fn create_new_non_unique_name_wallet() {
         let arr = [
             "add",
-            "wallet",
+            "account",
             "--name",
             "alice",
-            "--with-password",
-            "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input_a).unwrap();
+        let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
         let mut config = Config::new(config_file.clone()).unwrap();
 
-        config.add_wallet(wallet).unwrap();
+        config.add_account(account).unwrap();
 
         let arr = [
             "add",
-            "wallet",
+            "account",
             "--name",
             "alice",
-            "--with-password",
-            "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input_b).unwrap();
+        let account = Account::new(account_input).unwrap();
 
-        let should_err = config.add_wallet(wallet).unwrap_err();
+        let should_err = config.add_account(account).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
         assert_eq!(
-            ConfigError::WalletNameIsNotUnique,
+            ConfigError::AccountNameIsNotUnique,
             should_err,
         );
     }
@@ -137,25 +130,23 @@ mod wallet {
     fn create_new_non_unique_phrase_wallet() {
         let arr = [
             "add",
-            "wallet",
+            "account",
             "--name",
             "alice",
             "--import",
-            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input_a).unwrap();
+        let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
         let mut config = Config::new(config_file.clone()).unwrap();
 
-        config.add_wallet(wallet).unwrap();
+        config.add_account(account).unwrap();
 
         let arr = [
             "add",
@@ -163,66 +154,69 @@ mod wallet {
             "--name",
             "bob",
             "--import",
-            "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+        let account_input = AccountInput::new(input_b).unwrap();
+        let account = Account::new(account_input).unwrap();
 
-        let should_err = config.add_wallet(wallet).unwrap_err();
+        let should_err = config.add_account(account).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
         assert_eq!(
-            ConfigError::WalletAlreadyExists,
+            ConfigError::AccountAlreadyExists,
             should_err,
         );
     }
 
     #[test]
-    fn could_not_parse_seed() {
+    fn could_not_parse_secret_key() {
         let arr = [
             "add",
             "wallet",
             "--name",
             "alice",
             "--import",
-            "#ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            "#EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap_err();
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap_err();
 
         assert_eq!(
-            ConfigError::CouldNotParseSeed,
-            wallet,
+            ConfigError::CouldNotParseAccountSecretKey,
+            account,
         );
     }
 
 
     #[test]
     fn broken_config_file() {
-        let arr = ["add", "wallet", "--name", "alice", "--with-password", "no"].map(|el| el.to_string());
+        let arr = [
+            "add",
+            "wallet",
+            "--name",
+            "alice",
+        ].map(|el| el.to_string());
+
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
-        let wallet = Wallet::new(wallet_input).unwrap();
+
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
         let mut config = Config::new(config_file.clone()).unwrap();
 
-        config.add_wallet(wallet).unwrap();
+        config.add_account(account).unwrap();
 
         let mut file = fs::OpenOptions::new()
             .write(true)

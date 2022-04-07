@@ -8,6 +8,7 @@ use crate::config::errors::ConfigError;
 use crate::wallet::Wallet;
 use serde_derive::{Serialize, Deserialize};
 use rand::{distributions::Alphanumeric, Rng};
+use crate::account::Account;
 
 #[derive(Debug, Clone)]
 pub struct ConfigFile {
@@ -50,7 +51,12 @@ impl ConfigFile {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigData {
+
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
     pub wallets: Vec<Wallet>,
+
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
+    pub accounts: Vec<Account>,
 }
 
 
@@ -78,6 +84,7 @@ impl Config {
                         file: config_file,
                         data: ConfigData {
                             wallets: vec![],
+                            accounts: vec![],
                         }
                     })
                 } else {
@@ -99,28 +106,60 @@ impl Config {
     }
 
     pub fn add_wallet(&mut self, wallet: Wallet) -> Result<(), ConfigError> {
-        let wallet_names: Vec<String> = self.data.wallets
-            .iter()
-            .map(|wallet| wallet.name.clone())
-            .collect();
 
-        if let true = wallet_names.contains(&wallet.name) {
+        let same_wallet_names = self.data.wallets
+            .iter()
+            .filter(|el| el.name == wallet.name)
+            .count();
+
+        if let true = same_wallet_names > 0 {
             return Err(ConfigError::WalletNameIsNotUnique);
         }
 
-        let wallet_seed_phrases: Vec<String> = self.data.wallets
+        let same_wallet_seed_phrases = self.data.wallets
             .iter()
-            .map(|wallet| wallet.bs58seed.clone())
-            .collect();
+            .filter(|el| el.bs58seed == wallet.bs58seed)
+            .count();
 
-        if let true = wallet_seed_phrases.contains(&wallet.bs58seed) {
+        if let true = same_wallet_seed_phrases > 0 {
             return Err(ConfigError::WalletAlreadyExists);
         }
+
         self.data.wallets.push(wallet);
 
         match self.save_config() {
             Ok(_) => {
                 println!("The wallet has been successfully created");
+                Ok(())
+            },
+            Err(e) => return Err(e),
+        }
+    }
+
+    pub fn add_account(&mut self, account: Account) -> Result<(), ConfigError> {
+        let same_account_names = self.data.accounts
+            .iter()
+            .filter(|el| el.name == account.name)
+            .count();
+
+        if let true = same_account_names > 0 {
+            return Err(ConfigError::AccountNameIsNotUnique);
+        }
+
+        let same_account_seeds = self.data.accounts
+            .iter()
+            .filter(|el| el.seed == account.seed)
+            .count();
+
+        if let true = same_account_seeds > 0 {
+            return Err(ConfigError::AccountAlreadyExists);
+        }
+
+        self.data.accounts.push(account);
+
+        match self.save_config() {
+            Ok(_) => {
+                println!("The account has been successfully created");
                 Ok(())
             },
             Err(e) => return Err(e),
@@ -137,8 +176,15 @@ impl Config {
 
         match fs::File::create(&self.file.path) {
             Ok(mut file) => {
-                let toml = toml::to_string(&self.data).unwrap();
-                match file.write_all(toml.as_ref()) {
+                let contents = match toml::to_string(&self.data) {
+                    Ok(contents) => contents,
+                    Err(e) => {
+                        eprintln!("DATA: {:?}", &self.data);
+                        eprintln!("Error: {}", e);
+                        return Err(ConfigError::CouldNotCreateConfigFile);
+                    },
+                };
+                match file.write_all(contents.as_ref()) {
                     Ok(_) => {
                         Ok(())
                     },
