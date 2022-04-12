@@ -3,6 +3,7 @@ mod rpc;
 pub mod wallet;
 pub mod config;
 pub mod account;
+pub mod message;
 
 use std::error::Error;
 use inputs::{
@@ -41,7 +42,6 @@ pub fn run(input: Input) -> Result<(), Box<dyn Error>> {
                 return Err(Box::<dyn Error>::from(e));
             }
         }
-        Command::DeleteWallet => {}
         Command::AddAccount => {
             let account_input = match AccountInput::new(input) {
                 Ok(input) => input,
@@ -62,8 +62,10 @@ pub fn run(input: Input) -> Result<(), Box<dyn Error>> {
             if let Err(e) = config.add_account(account) {
                 return Err(Box::<dyn Error>::from(e));
             }
+        },
+        Command::ComposeMessage => {
+
         }
-        Command::DeleteAccount => {}
     }
     Ok(())
 }

@@ -10,15 +10,15 @@ use rules::Rules;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FlagKey {
-    Recipient,
-    Sender,
-    Wallet,
-    Attachment,
-    Import,
-    Keyring,
-    Output,
     Name,
+    Import,
     WithPassword,
+    Sender,
+    Recipient,
+    Key,
+    Value,
+    Blob,
+    Wallet,
 }
 
 
@@ -26,11 +26,10 @@ pub enum FlagKey {
 pub enum Command {
     AddWallet,
     AddAccount,
-    DeleteWallet,
-    DeleteAccount,
+    ComposeMessage,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Flag {
     pub key: FlagKey,
     pub value: String,
@@ -53,8 +52,7 @@ impl Input {
                         match (command.as_str(), arg.as_str()) {
                             commands::ADD_WALLET => Command::AddWallet,
                             commands::ADD_ACCOUNT => Command::AddAccount,
-                            commands::DELETE_WALLET => Command::DeleteWallet,
-                            commands::DELETE_ACCOUNT => Command::DeleteAccount,
+                            commands::COMPOSE_MESSAGE => Command::ComposeMessage,
                             _ => return Err(InputError::UnrecognisedCommand)
                         }
                     },
@@ -70,14 +68,13 @@ impl Input {
                 Some(value) => {
                     let flag_key: FlagKey = match key.as_str() {
                         flags::NAME | flags::N => FlagKey::Name,
+                        flags::IMPORT | flags::I => FlagKey::Import,
+                        flags::WITH_PASSWORD => FlagKey::WithPassword,
                         flags::SENDER | flags::S => FlagKey::Sender,
                         flags::RECIPIENT | flags::R => FlagKey::Recipient,
-                        flags::ATTACHMENT | flags::A => FlagKey::Attachment,
-                        flags::WALLET | flags::W => FlagKey::Wallet,
-                        flags::IMPORT | flags::I => FlagKey::Import,
-                        flags::KEYRING | flags::K => FlagKey::Keyring,
-                        flags::OUTPUT | flags::O => FlagKey::Output,
-                        flags::WITH_PASSWORD => FlagKey::WithPassword,
+                        flags::KEY | flags::K => FlagKey::Key,
+                        flags::VALUE | flags::V => FlagKey::Value,
+                        flags::BLOB | flags::B => FlagKey::Blob,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 
@@ -88,7 +85,10 @@ impl Input {
 
                     flags.push(flag);
                 },
-                None => return Err(InputError::NoCorrespondingValue)
+                None => {
+                    eprintln!("Flag without value: {}", key);
+                    return Err(InputError::NoValueForFlag);
+                }
             };
         };
 
@@ -101,6 +101,10 @@ impl Input {
         }
 
         if let Err(e) = Rules::new(&command).validate_on_non_unique_keys(&flags) {
+            return Err(e);
+        }
+
+        if let Err(e) = Rules::new(&command).validate_key_value_flags(&flags) {
             return Err(e);
         }
 

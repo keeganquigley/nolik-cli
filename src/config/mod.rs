@@ -1,4 +1,3 @@
-pub mod files;
 pub mod errors;
 
 use std::fs;
@@ -201,5 +200,17 @@ impl Config {
         }
     }
 
+    pub fn get_account(&self, key: String) -> Option<Account> {
+        let accounts: Vec<Account> = self.data.accounts
+            .iter()
+            .filter(|account| vec![&account.name, &account.public].contains(&&key))
+            .map(|account| account.to_owned())
+            .collect();
+
+        match accounts.len() {
+            1 => Some(accounts.last().unwrap().to_owned()),
+            _ => None,
+        }
+    }
 }
 

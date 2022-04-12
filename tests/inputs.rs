@@ -39,7 +39,7 @@ mod inputs {
         let arr = ["add", "wallet", "--name"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
-            InputError::NoCorrespondingValue,
+            InputError::NoValueForFlag,
             Input::new(args).unwrap_err()
         );
     }
@@ -56,7 +56,7 @@ mod inputs {
 
     #[test]
     fn invalid_flags() {
-        let arr = ["add", "wallet", "--name", "alice", "--output", "value"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--name", "alice", "--sender", "value"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
             InputError::InvalidFlag,

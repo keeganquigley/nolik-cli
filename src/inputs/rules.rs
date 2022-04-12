@@ -15,22 +15,53 @@ impl Rules {
         match command {
             Command::AddWallet =>
                 Rules {
-                    valid_keys: vec![FlagKey::Name, FlagKey::Import, FlagKey::WithPassword],
-                    required_keys: vec![FlagKey::Name],
-                    unique_keys: vec![FlagKey::Name, FlagKey::Import, FlagKey::WithPassword],
+                    valid_keys: vec![
+                        FlagKey::Name,
+                        FlagKey::Import,
+                        FlagKey::WithPassword,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Name,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Name,
+                        FlagKey::Import,
+                        FlagKey::WithPassword,
+                    ],
                 },
             Command::AddAccount =>
                 Rules {
-                    valid_keys: vec![FlagKey::Name, FlagKey::Import],
-                    required_keys: vec![FlagKey::Name],
-                    unique_keys: vec![FlagKey::Name, FlagKey::Import],
+                    valid_keys: vec![
+                        FlagKey::Name,
+                        FlagKey::Import,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Name,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Name,
+                        FlagKey::Import,
+                    ],
                 },
-            Command::DeleteWallet | Command::DeleteAccount =>
+            Command::ComposeMessage =>
                 Rules {
-                    valid_keys: vec![FlagKey::Name],
-                    required_keys: vec![FlagKey::Name],
-                    unique_keys: vec![FlagKey::Name],
-                }
+                    valid_keys: vec![
+                        FlagKey::Import,
+                        FlagKey::Sender,
+                        FlagKey::Recipient,
+                        FlagKey::Key,
+                        FlagKey::Value,
+                        FlagKey::Blob,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Sender,
+                        FlagKey::Recipient,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Import,
+                        FlagKey::Sender,
+                    ],
+                },
         }
     }
 
@@ -89,6 +120,30 @@ impl Rules {
             0 => Ok(()),
             _ => return Err(InputError::NonUniqueKeys)
         }
+    }
+
+    pub fn validate_key_value_flags(self, flags: &Flags) -> Result<(), InputError> {
+        let mut flags = flags.iter();
+        while let Some(key_flag) = &flags.next() {
+            if key_flag.key == FlagKey::Key {
+                match &flags.next() {
+                    Some(value_flag) => {
+                        match value_flag.key {
+                            FlagKey::Value => continue,
+                            _ => {
+                                eprintln!("A key without value: {}", key_flag.value);
+                                return Err(InputError::NoCorrespondingValue);
+                            }
+                        }
+                    },
+                    None => {
+                        eprintln!("A key without value: {}", key_flag.value);
+                        return Err(InputError::NoCorrespondingValue);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 
