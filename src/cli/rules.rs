@@ -1,7 +1,6 @@
-use crate::FlagKey;
-use crate::inputs::errors::InputError;
+use crate::cli::errors::InputError;
+use crate::cli::input::{FlagKey, Flags};
 use crate::Command;
-use crate::inputs::Flags;
 
 #[derive(Debug)]
 pub struct Rules {

@@ -1,5 +1,5 @@
 use std::{env, process};
-use nolik_cli::inputs::Input;
+use nolik_cli::cli::input::Input;
 
 fn main() {
 

@@ -1,9 +1,10 @@
 use rand::Rng;
-use crate::config::errors::ConfigError;
 use serde_derive::{Serialize, Deserialize};
-use crate::{FlagKey, Input, InputError};
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Seed};
+use crate::cli::errors::{ConfigError, InputError};
+use crate::cli::input::FlagKey;
+use crate::Input;
 
 
 pub struct AccountInput {
@@ -68,9 +69,6 @@ impl Account {
                 (pk, sk, seed)
             }
         };
-
-        // let mut output: [u8; 32] = [0; 32];
-        // bs58::decode(account.2).into(&mut output);
 
         Ok(Account {
             public: bs58::encode(&account.0).into_string(),

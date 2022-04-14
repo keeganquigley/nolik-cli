@@ -1,20 +1,14 @@
-pub mod inputs;
+pub mod cli;
 mod rpc;
 pub mod wallet;
-pub mod config;
 pub mod account;
 pub mod message;
 
 use std::error::Error;
-use inputs::{
-    Input,
-    Command,
-    FlagKey,
-    errors::InputError,
-};
 use wallet::Wallet;
 use crate::account::{Account, AccountInput};
-use crate::config::{Config, ConfigFile};
+use crate::cli::config::{Config, ConfigFile};
+use crate::cli::input::{Command, Input};
 use crate::wallet::WalletInput;
 
 

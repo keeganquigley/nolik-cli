@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod account {
 
-    use nolik_cli::config::{errors::ConfigError, Config, ConfigFile, ConfigData};
     use nolik_cli::account::{Account, AccountInput};
     use std::fs;
     use std::io::prelude::*;
-    use nolik_cli::inputs::Input;
+    use nolik_cli::cli::config::{Config, ConfigData, ConfigFile};
+    use nolik_cli::cli::errors::ConfigError;
+    use nolik_cli::cli::input::Input;
 
 
     #[test]

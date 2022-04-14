@@ -1,13 +1,11 @@
-pub mod errors;
-
 use std::fs;
 use std::io::{ErrorKind, Write};
 use std::path::PathBuf;
-use crate::config::errors::ConfigError;
-use crate::wallet::Wallet;
 use serde_derive::{Serialize, Deserialize};
 use rand::{distributions::Alphanumeric, Rng};
 use crate::account::Account;
+use crate::wallet::Wallet;
+use crate::cli::errors::ConfigError;
 
 #[derive(Debug, Clone)]
 pub struct ConfigFile {
@@ -165,7 +163,7 @@ impl Config {
         }
     }
 
-    pub fn save_config(&self) -> Result<(), errors::ConfigError> {
+    pub fn save_config(&self) -> Result<(), ConfigError> {
         if let false = self.file.dir.exists() {
             if let Err(e) = fs::create_dir(&self.file.dir) {
                 eprintln!("Error: {}", e);
@@ -213,4 +211,3 @@ impl Config {
         }
     }
 }
-

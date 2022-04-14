@@ -6,6 +6,7 @@ pub enum MessageError {
     CouldNotSaveBatchFile,
     CouldNotCreateDataDir,
     DecryptionError,
+    CouldNotDecryptAddress,
 }
 
 
@@ -15,6 +16,7 @@ impl Display for MessageError {
             MessageError::CouldNotSaveBatchFile => f.write_str("Could not save composed message"),
             MessageError::CouldNotCreateDataDir => f.write_str("Could not create Date directory"),
             MessageError::DecryptionError => f.write_str("Decryption error"),
+            MessageError::CouldNotDecryptAddress => f.write_str("Could not decrypt provided address")
         }
     }
 }

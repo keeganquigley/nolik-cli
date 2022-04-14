@@ -1,12 +1,7 @@
-pub mod constants;
-pub mod rules;
-pub mod errors;
-
-
 use std::slice::Iter;
-use constants::{commands, flags};
-use errors::InputError;
-use rules::Rules;
+use crate::cli::constants::{commands, flags};
+use crate::cli::errors::InputError;
+use crate::cli::rules::Rules;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FlagKey {

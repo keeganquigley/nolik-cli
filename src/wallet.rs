@@ -1,8 +1,9 @@
 use sp_core::{Pair, sr25519};
-use crate::config::errors::ConfigError;
 use serde_derive::{Serialize, Deserialize};
 use rpassword;
-use crate::{FlagKey, Input, InputError};
+use crate::cli::errors::{ConfigError, InputError};
+use crate::cli::input::FlagKey;
+use crate::Input;
 
 
 pub struct WalletInput {

@@ -1,8 +1,8 @@
 
 #[cfg(test)]
 mod inputs {
-    use nolik_cli::inputs::errors::InputError;
-    use nolik_cli::inputs::{Input, Flag, Flags, FlagKey, Command};
+    use nolik_cli::cli::errors::InputError;
+    use nolik_cli::cli::input::{Command, Flag, FlagKey, Flags, Input};
 
     #[test]
     fn unrecognised_command() {
