@@ -1,6 +1,6 @@
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
-use crate::message::data::Data;
+use crate::message::data::{Data, DecryptedData};
 use serde_derive::{Serialize, Deserialize};
 use crate::message::errors::MessageError;
 use crate::message::nonce::Nonce;
@@ -16,7 +16,7 @@ pub enum SenderOrRecipient {
 pub struct DecryptedMessage {
     pub nonce: box_::Nonce,
     pub other: PublicKey,
-    pub data: Vec<Data>
+    pub data: Vec<DecryptedData>
 }
 
 
@@ -56,10 +56,17 @@ impl EncryptedMessage {
             }
         };
 
+
+        let data = match Data::decrypt(&self, &nonce, &other, &sk) {
+            Ok(data) => data,
+            Err(e) => return Err(e),
+        };
+
+
         Ok(DecryptedMessage {
             nonce,
             other,
-            data: vec![],
+            data,
         })
     }
 }

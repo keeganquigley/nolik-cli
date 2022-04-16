@@ -5,7 +5,8 @@ use crate::message::errors::MessageError;
 use crate::message::input::MessageInput;
 use crate::message::message::EncryptedMessage;
 use crate::message::utils::{base64_to_nonce, base64_to_public_key, base64_to_vec, Box};
-use blake2::Digest;
+use crate::message::encryption::Encryption;
+
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Nonce {
@@ -23,99 +24,75 @@ pub struct Nonce {
 }
 
 
+impl Encryption for Nonce {}
+
+
 impl Nonce {
-    pub(crate) fn encrypt(message_input: &MessageInput, sender_pk: &PublicKey, recipient_pk: &PublicKey) -> Nonce {
-        Nonce {
-            public: Self::public_nonce_encoded(&message_input),
-            ciphertext_for_sender: Self::encrypt_nonce_for_sender(&message_input, &sender_pk),
-            ciphertext_for_recipient: Self::encrypt_nonce_for_recipient(&message_input, &recipient_pk),
-            hash: Self::nonce_hash(message_input),
+    pub(crate) fn encrypt(mi: &MessageInput, sender_pk: &PublicKey, recipient_pk: &PublicKey) -> Result<Nonce, MessageError> {
+        let ciphertext_for_sender = match Self::encrypt_nonce_for(&mi, &sender_pk) {
+            Ok(ciphertext) => ciphertext,
+            Err(e) => return Err(e),
+        };
+
+        let ciphertext_for_recipient = match Self::encrypt_nonce_for(&mi, &recipient_pk) {
+            Ok(ciphertext) => ciphertext,
+            Err(e) => return Err(e),
+        };
+
+        Ok(Nonce {
+            public: base64::encode(mi.otu.nonce.public),
+            ciphertext_for_sender,
+            ciphertext_for_recipient,
+            hash: Self::hash_data(&mi.otu.nonce.secret.as_ref(), &mi.otu.nonce.secret),
+        })
+    }
+
+
+    pub fn encrypt_nonce_for(mi: &MessageInput, pk: &PublicKey) -> Result<String, MessageError> {
+        match Self::encrypt_data(
+            &mi.otu.nonce.secret.as_ref(),
+            &mi.otu.nonce.public,
+            &pk,
+            &mi.otu.sender.secret) {
+            Ok(ciphertext) => Ok(ciphertext),
+            Err(e) => return Err(e),
         }
     }
 
-    fn public_nonce_encoded(mi: &MessageInput) -> String {
-        base64::encode(mi.otu.nonce.public)
+
+    pub fn decrypt_nonce_for_sender(em: &EncryptedMessage, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
+        Self::decrypt_nonce_for(&em, &em.nonce.ciphertext_for_sender, &sk)
     }
 
-    pub fn encrypt_nonce_for_sender(mi: &MessageInput, sender_pk: &PublicKey) -> String {
-        let encrypted_nonce = Box::new(
-            &mi.otu.nonce.secret.as_ref(),
-            &mi.otu.nonce.public,
-            &sender_pk,
-            &mi.otu.sender.secret,
-        ).encrypt();
 
-        base64::encode(encrypted_nonce)
+    pub fn decrypt_nonce_for_recipient(em: &EncryptedMessage, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
+        Self::decrypt_nonce_for(&em, &em.nonce.ciphertext_for_recipient, &sk)
     }
 
-    fn encrypt_nonce_for_recipient(mi: &MessageInput, recipient_pk: &PublicKey) -> String {
-        let encrypted_nonce = Box::new(
-            &mi.otu.nonce.secret.as_ref(),
-            &mi.otu.nonce.public,
-            &recipient_pk,
-            &mi.otu.sender.secret,
-        ).encrypt();
 
-        base64::encode(encrypted_nonce)
-    }
+    pub fn decrypt_nonce_for(em: &EncryptedMessage, data: &String, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
+        let data = match base64_to_vec(&data) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
 
-    fn nonce_hash(mi: &MessageInput) -> String {
-        let mut hasher = blake2::Blake2s256::new();
-        hasher.update(&mi.otu.nonce.secret);
-        hasher.update(&mi.otu.nonce.secret);
-        let hash = hasher.finalize().to_vec();
+        let pn = match base64_to_nonce(&em.nonce.public) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
 
-        base64::encode(hash)
-    }
+        let pk = match base64_to_public_key(&em.sender.public) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
 
-    fn decrypt_nonce(data: &[u8], pn: &box_::Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
-        let nonce_box = Box::new(&data, &pn, &pk, &sk);
-
-        let nonce = match nonce_box.decrypt() {
+        let nonce = match Self::decrypt_data(&data, &pn, &pk, &sk) {
             Ok(nonce) => nonce,
             Err(e) => return Err(e)
         };
-
         match box_::Nonce::from_slice(nonce.as_slice()) {
             Some(nonce) => Ok(nonce),
             None => return Err(MessageError::DecryptionError),
         }
-    }
-
-    pub fn decrypt_nonce_for_sender(em: &EncryptedMessage, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
-        let data = match base64_to_vec(&em.nonce.ciphertext_for_sender) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        let pn = match base64_to_nonce(&em.nonce.public) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        let pk = match base64_to_public_key(&em.sender.public) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        Self::decrypt_nonce(&data, &pn, &pk, &sk)
-    }
-
-    pub fn decrypt_nonce_for_recipient(em: &EncryptedMessage, sk: &SecretKey) -> Result<box_::Nonce, MessageError> {
-        let data = match base64_to_vec(&em.nonce.ciphertext_for_recipient) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        let pn = match base64_to_nonce(&em.nonce.public) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        let pk = match base64_to_public_key(&em.sender.public) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-        Self::decrypt_nonce(&data, &pn, &pk, &sk)
     }
 }

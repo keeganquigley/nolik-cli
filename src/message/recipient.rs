@@ -1,12 +1,10 @@
-use std::ptr::read_unaligned;
 use serde_derive::{Serialize, Deserialize};
-use sodiumoxide::crypto::box_;
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
+use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 use crate::message::errors::MessageError;
 use crate::message::input::MessageInput;
 use crate::message::message::EncryptedMessage;
 use crate::message::utils::{base58_to_public_key, base64_to_public_key, base64_to_vec, Box};
-use blake2::Digest;
+use crate::message::encryption::Encryption;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Recipient {
@@ -18,44 +16,28 @@ pub struct Recipient {
 }
 
 
+impl Encryption for Recipient {}
+
+
 impl Recipient {
-    pub(crate) fn encrypt(message_input: &MessageInput, recipient_pk: &PublicKey) -> Result<Recipient, MessageError> {
-        let ciphertext = match Self::encrypt_recipient(&message_input, &recipient_pk) {
+    pub fn encrypt(mi: &MessageInput, pk: &PublicKey) -> Result<Recipient, MessageError> {
+        let sender_pk = match base58_to_public_key(&mi.sender.public) {
+            Ok(pk) => pk,
+            Err(e) => return Err(e),
+        };
+
+        let ciphertext = match Recipient::encrypt_data(&pk.as_ref(), &mi.otu.nonce.secret, &sender_pk, &mi.otu.sender.secret) {
             Ok(ciphertext) => ciphertext,
             Err(e) => return Err(e),
         };
 
         Ok(Recipient {
             ciphertext,
-            hash: Self::recipient_hash(&message_input, &recipient_pk),
+            hash: Recipient::hash_data(&mi.otu.sender.secret.as_ref(), &mi.otu.nonce.secret),
         })
     }
 
-    fn encrypt_recipient(mi: &MessageInput, recipient_pk: &PublicKey) -> Result<String, MessageError> {
-        let sender_pk = match base58_to_public_key(&mi.sender.public) {
-            Ok(pk) => pk,
-            Err(e) => return Err(e),
-        };
-
-        let encrypted_recipient = Box::new(
-            &recipient_pk.as_ref(),
-            &mi.otu.nonce.secret,
-            &sender_pk,
-            &mi.otu.sender.secret,
-        ).encrypt();
-
-        Ok(base64::encode(encrypted_recipient))
-    }
-
-    fn recipient_hash(mi: &MessageInput, pk: &PublicKey) -> String {
-        let mut hasher = blake2::Blake2s256::new();
-        hasher.update(&pk);
-        hasher.update(&mi.otu.nonce.secret);
-        let hash = hasher.finalize().to_vec();
-        base64::encode(hash)
-    }
-
-    pub fn decrypt(em: &EncryptedMessage, nonce: &box_::Nonce, sk: &SecretKey) -> Result<PublicKey, MessageError> {
+    pub fn decrypt(em: &EncryptedMessage, nonce: &Nonce, recipient_sk: &SecretKey) -> Result<PublicKey, MessageError> {
         let data = match base64_to_vec(&em.recipient.ciphertext) {
             Ok(data) => data,
             Err(e) => return Err(e),
@@ -66,12 +48,12 @@ impl Recipient {
             Err(e) => return Err(e),
         };
 
-        let recipient = match Box::new(data.as_slice(), nonce, &pk, &sk).decrypt() {
-            Ok(sender) => sender,
+        let recipient = match Recipient::decrypt_data(&data.as_slice(), &nonce, &pk, &recipient_sk) {
+            Ok(recipient) => recipient,
             Err(e) => return Err(e),
         };
 
-        match box_::PublicKey::from_slice(recipient.as_slice()) {
+        match PublicKey::from_slice(recipient.as_slice()) {
             Some(res) => Ok(res),
             None => return Err(MessageError::DecryptionError),
         }

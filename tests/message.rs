@@ -250,6 +250,10 @@ mod message {
             "alice",
             "--recipient",
             "Gq5xd5c62w4fryJx8poYexoBJAy9JUpjir9vR4qMDF6z",
+            "--key",
+            "message",
+            "--value",
+            "test"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -271,7 +275,7 @@ mod message {
     fn nonce_decrypted_by_sender() {
         let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
 
-        let encrypted_message = mi.encrypt(&spk, &rpk).unwrap();
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let initial_nonce = mi.otu.nonce.secret;
         let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().nonce;
 
@@ -284,9 +288,9 @@ mod message {
 
     #[test]
     fn nonce_decrypted_by_recipient() {
-        let ((spk, _ssk), (rpk, rsk), mi) = generate_message_input();
+        let ((spk, ssk), (rpk, rsk), mi) = generate_message_input();
 
-        let encrypted_message = mi.encrypt(&spk, &rpk).unwrap();
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let initial_nonce = mi.otu.nonce.secret;
         let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().nonce;
 
@@ -298,8 +302,8 @@ mod message {
 
     #[test]
     fn sender_decrypted_by_recipient() {
-        let ((spk, _ssk), (rpk, rsk), mi) = generate_message_input();
-        let encrypted_message = mi.encrypt(&spk, &rpk).unwrap();
+        let ((spk, ssk), (rpk, rsk), mi) = generate_message_input();
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let decrypted_sender = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().other;
 
         assert_eq!(
@@ -312,12 +316,44 @@ mod message {
     fn recipient_decrypted_by_sender() {
         let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
 
-        let encrypted_message = mi.encrypt(&spk, &rpk).unwrap();
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let decrypted_recipient = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().other;
 
         assert_eq!(
             rpk,
             decrypted_recipient,
+        )
+    }
+
+    #[test]
+    fn data_decrypted_by_sender() {
+        let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
+
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
+        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().data;
+
+        let (initial_key, initial_value) = mi.data.last().unwrap();
+        let decrypted_data = decrypted_data_inputs.last().unwrap();
+
+        assert_eq!(
+            (initial_key, initial_value),
+            (&decrypted_data.key, &decrypted_data.value),
+        )
+    }
+
+    #[test]
+    fn data_decrypted_by_recipient() {
+        let ((spk, ssk), (rpk, rsk), mi) = generate_message_input();
+
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
+        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().data;
+
+        let (initial_key, initial_value) = mi.data.last().unwrap();
+        let decrypted_data = decrypted_data_inputs.last().unwrap();
+
+        assert_eq!(
+            (initial_key, initial_value),
+            (&decrypted_data.key, &decrypted_data.value),
         )
     }
 }

@@ -7,3 +7,4 @@ pub mod nonce;
 pub mod sender;
 pub mod recipient;
 pub mod data;
+pub mod encryption;

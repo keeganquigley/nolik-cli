@@ -3,6 +3,7 @@ use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use crate::{Account, Config, Input};
 use crate::cli::errors::InputError;
 use crate::cli::input::{Flag, FlagKey};
+use crate::message::data::Data;
 use crate::message::errors::MessageError;
 use crate::message::message::EncryptedMessage;
 use crate::message::nonce::Nonce;
@@ -66,7 +67,7 @@ impl OneTimeUse {
 pub struct MessageInput {
     pub sender: Account,
     pub recipients: Vec<box_::PublicKey>,
-    data: Vec<(Flag, Flag)>,
+    pub data: Vec<(String, String)>,
     blobs: Vec<Flag>,
     pub otu: OneTimeUse,
 }
@@ -99,16 +100,17 @@ impl MessageInput {
             recipients.push(address);
         }
 
-        let mut data = Vec::new();
+        let mut data: Vec<(String, String)> = Vec::new();
         let flags = &mut input.flags;
         while let Some(key_flag) = flags.pop() {
+            let key = key_flag.value;
             match key_flag.key {
                 FlagKey::Key => {
-                    let value_flag = flags.iter().next().unwrap();
-                    data.push((
-                        key_flag.clone(),
-                        value_flag.clone()
-                    ));
+                    let value: String = match flags.iter().next() {
+                        Some(flag) => flag.value.to_string(),
+                        None => return Err(InputError::NoCorrespondingValue),
+                    };
+                    data.push((key, value));
                 },
                 _ => continue
             }
@@ -123,22 +125,32 @@ impl MessageInput {
         })
     }
 
-    pub fn encrypt(&self, sender_pk: &PublicKey, recipient_pk: &PublicKey) -> Result<EncryptedMessage, MessageError> {
-        let sender = match Sender::encrypt(&self, recipient_pk) {
+    pub fn encrypt(&self, sender_pk: &PublicKey, sender_sk: &SecretKey, recipient_pk: &PublicKey) -> Result<EncryptedMessage, MessageError> {
+        let nonce = match Nonce::encrypt(&self, &sender_pk, &recipient_pk) {
             Ok(sender) => sender,
             Err(e) => return Err(e),
         };
 
-        let recipient = match Recipient::encrypt(&self, recipient_pk) {
+        let sender = match Sender::encrypt(&self, &recipient_pk) {
+            Ok(sender) => sender,
+            Err(e) => return Err(e),
+        };
+
+        let recipient = match Recipient::encrypt(&self, &recipient_pk) {
             Ok(recipient) => recipient,
             Err(e) => return Err(e),
         };
 
+        let data = match Data::encrypt(&self, &recipient_pk, &sender_sk) {
+            Ok(data) => data,
+            Err(e) => return Err(e),
+        };
+
         Ok(EncryptedMessage {
-            nonce: Nonce::encrypt(&self, &sender_pk, &recipient_pk),
+            nonce,
             sender,
             recipient,
-            data: vec![]
+            data,
         })
     }
 }
