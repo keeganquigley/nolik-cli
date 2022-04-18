@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod cli;
 mod rpc;
 pub mod wallet;

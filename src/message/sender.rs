@@ -1,8 +1,7 @@
-use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 use crate::message::input::MessageInput;
 use crate::message::message::EncryptedMessage;
-use crate::message::utils::{base58_to_public_key, base64_to_public_key, base64_to_vec, Box};
+use crate::message::utils::{base58_to_public_key, base64_to_public_key, base64_to_vec};
 use crate::message::errors::MessageError;
 use serde_derive::{Serialize, Deserialize};
 use crate::message::encryption::Encryption;
@@ -10,13 +9,10 @@ use crate::message::encryption::Encryption;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sender {
-    #[serde(rename(serialize = "0", deserialize = "public"))]
-    pub(crate) public: String,
-
-    #[serde(rename(serialize = "1", deserialize = "ciphertext"))]
+    #[serde(rename = "0")]
     ciphertext: String,
 
-    #[serde(rename(serialize = "2", deserialize = "hash"))]
+    #[serde(rename = "1")]
     hash: String,
 }
 
@@ -36,7 +32,7 @@ impl Sender {
         };
 
         Ok(Sender {
-            public: base64::encode(&mi.otu.sender.public),
+            // public: base64::encode(&mi.otu.sender.public),
             ciphertext,
             hash: Sender::hash_data(&mi.otu.sender.secret.as_ref(), &mi.otu.nonce.secret),
         })
@@ -48,7 +44,7 @@ impl Sender {
             Err(e) => return Err(e),
         };
 
-        let pk = match base64_to_public_key(&em.sender.public) {
+        let pk = match base64_to_public_key(&em.public.sender) {
             Ok(pk) => pk,
             Err(e) => return Err(e),
         };

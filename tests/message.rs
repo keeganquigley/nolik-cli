@@ -1,21 +1,18 @@
 #[cfg(test)]
+// #[cfg(all(test, feature = "serde"))]
 mod message {
-    use std::{fs, process};
-    use sodiumoxide::crypto::box_;
+    use std::fs;
+    use async_std;
+    use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
     use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
-    use sp_runtime::app_crypto::wrap;
     use nolik_cli::account::{Account, AccountInput};
     use nolik_cli::cli::config::{Config, ConfigFile};
     use nolik_cli::cli::errors::InputError;
     use nolik_cli::cli::input::Input;
-    use nolik_cli::message::batch::Batch;
-    use nolik_cli::message::errors::MessageError;
     use nolik_cli::message::input::MessageInput;
     use nolik_cli::message::message::{EncryptedMessage, SenderOrRecipient};
-    use nolik_cli::message::nonce::Nonce;
-    use nolik_cli::message::recipient::Recipient;
-    use nolik_cli::message::sender::Sender;
-    use nolik_cli::message::utils::{base58_to_public_key, base58_to_secret_key, base64_to_nonce};
+    use nolik_cli::message::utils::{base58_to_public_key, base58_to_secret_key};
+    use futures_util::TryStreamExt;
 
     #[test]
     fn required_arguments_are_not_provided() {
@@ -251,9 +248,13 @@ mod message {
             "--recipient",
             "Gq5xd5c62w4fryJx8poYexoBJAy9JUpjir9vR4qMDF6z",
             "--key",
+            "subject",
+            "--value",
+            "hello",
+            "--key",
             "message",
             "--value",
-            "test"
+            "test",
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -266,6 +267,7 @@ mod message {
         let recipient_pk = base58_to_public_key(&bob.public).unwrap();
         let recipient_sk = base58_to_secret_key(&bob.secret).unwrap();
 
+        fs::remove_file(config_file.path).unwrap();
 
         ((sender_pk, sender_sk), (recipient_pk, recipient_sk), message_input)
     }
@@ -277,7 +279,7 @@ mod message {
 
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let initial_nonce = mi.otu.nonce.secret;
-        let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().nonce;
+        let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Sender(ssk)).unwrap().nonce;
 
         assert_eq!(
             initial_nonce,
@@ -292,7 +294,7 @@ mod message {
 
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
         let initial_nonce = mi.otu.nonce.secret;
-        let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().nonce;
+        let decrypted_nonce = encrypted_message.decrypt(&SenderOrRecipient::Recipient(rsk)).unwrap().nonce;
 
         assert_eq!(
             initial_nonce,
@@ -304,7 +306,7 @@ mod message {
     fn sender_decrypted_by_recipient() {
         let ((spk, ssk), (rpk, rsk), mi) = generate_message_input();
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
-        let decrypted_sender = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().other;
+        let decrypted_sender = encrypted_message.decrypt(&SenderOrRecipient::Recipient(rsk)).unwrap().address;
 
         assert_eq!(
             spk,
@@ -317,7 +319,7 @@ mod message {
         let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
 
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
-        let decrypted_recipient = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().other;
+        let decrypted_recipient = encrypted_message.decrypt(&SenderOrRecipient::Sender(ssk)).unwrap().address;
 
         assert_eq!(
             rpk,
@@ -330,7 +332,7 @@ mod message {
         let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
 
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
-        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Sender, &ssk).unwrap().data;
+        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Sender(ssk)).unwrap().data;
 
         let (initial_key, initial_value) = mi.data.last().unwrap();
         let decrypted_data = decrypted_data_inputs.last().unwrap();
@@ -346,7 +348,7 @@ mod message {
         let ((spk, ssk), (rpk, rsk), mi) = generate_message_input();
 
         let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
-        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Recipient, &rsk).unwrap().data;
+        let decrypted_data_inputs = encrypted_message.decrypt(&SenderOrRecipient::Recipient(rsk)).unwrap().data;
 
         let (initial_key, initial_value) = mi.data.last().unwrap();
         let decrypted_data = decrypted_data_inputs.last().unwrap();
@@ -355,5 +357,20 @@ mod message {
             (initial_key, initial_value),
             (&decrypted_data.key, &decrypted_data.value),
         )
+    }
+
+    #[async_std::test]
+    async fn saving_file_to_ipfs() {
+        let ((spk, ssk), (rpk, _rsk), mi) = generate_message_input();
+        let encrypted_message = mi.encrypt(&spk, &ssk, &rpk).unwrap();
+
+        let ipfs_hash = encrypted_message.save().await.unwrap();
+        let client = IpfsClient::default();
+        let asd = client.cat(&ipfs_hash).map_ok(|chunk| chunk.to_vec()).try_concat().await.unwrap();
+        // let zxc: EncryptedMessage = toml::from_slice(asd.as_slice()).unwrap();
+        let dd = String::from_utf8(asd).unwrap();
+        let cc: EncryptedMessage = toml::from_str(dd.as_str()).unwrap();
+        println!("RES {:#?}", cc);
+
     }
 }

@@ -3,15 +3,15 @@ use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 use crate::message::errors::MessageError;
 use crate::message::input::MessageInput;
 use crate::message::message::EncryptedMessage;
-use crate::message::utils::{base58_to_public_key, base64_to_public_key, base64_to_vec, Box};
+use crate::message::utils::{base58_to_public_key, base64_to_public_key, base64_to_vec};
 use crate::message::encryption::Encryption;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Recipient {
-    #[serde(rename(serialize = "0", deserialize = "ciphertext"))]
+    #[serde(rename = "0")]
     ciphertext: String,
 
-    #[serde(rename(serialize = "1", deserialize = "hash"))]
+    #[serde(rename = "1")]
     hash: String,
 }
 
@@ -43,7 +43,7 @@ impl Recipient {
             Err(e) => return Err(e),
         };
 
-        let pk = match base64_to_public_key(&em.sender.public) {
+        let pk = match base64_to_public_key(&em.public.sender) {
             Ok(pk) => pk,
             Err(e) => return Err(e),
         };

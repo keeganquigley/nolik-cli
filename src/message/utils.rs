@@ -67,40 +67,4 @@ pub fn base58_to_secret_key(data: &String) -> Result<box_::SecretKey, MessageErr
     }
 }
 
-pub struct Box<'a> {
-    data: &'a [u8],
-    nonce: &'a box_::Nonce,
-    pk: &'a box_::PublicKey,
-    sk: &'a box_::SecretKey,
-}
 
-
-impl<'a> Box<'a> {
-    pub(crate) fn new(
-        data: &'a [u8],
-        nonce: &'a box_::Nonce,
-        pk: &'a box_::PublicKey,
-        sk: &'a box_::SecretKey
-    ) -> Box<'a> {
-        Box {
-            data,
-            nonce,
-            pk,
-            sk,
-        }
-    }
-
-    pub(crate) fn encrypt(&self) -> Vec<u8> {
-        box_::seal(self.data, &self.nonce, &self.pk, &self.sk)
-    }
-
-    pub(crate) fn decrypt(&self) -> Result<Vec<u8>, MessageError> {
-        match box_::open(&self.data, &self.nonce, &self.pk, &self.sk) {
-            Ok(res) => Ok(res),
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(MessageError::DecryptionError);
-            }
-        }
-    }
-}

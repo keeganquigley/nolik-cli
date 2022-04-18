@@ -4,12 +4,15 @@ use crate::message::encryption::Encryption;
 use crate::message::errors::MessageError;
 use crate::message::input::MessageInput;
 use crate::message::message::EncryptedMessage;
-use crate::message::utils::{base64_to_vec, Box};
+use crate::message::utils::base64_to_vec;
 
 
 #[derive(Debug, Serialize, Deserialize)]
 struct DataKey {
+    #[serde(rename = "0")]
     ciphertext: String,
+
+    #[serde(rename = "1")]
     hash: String,
 }
 
@@ -19,7 +22,10 @@ impl Encryption for DataKey {}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct DataValue {
+    #[serde(rename = "0")]
     ciphertext: String,
+
+    #[serde(rename = "1")]
     hash: String,
 }
 

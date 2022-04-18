@@ -1,8 +1,9 @@
 use std::{env, process};
 use nolik_cli::cli::input::Input;
+use async_std;
 
-fn main() {
-
+#[async_std::main]
+async fn main() {
     let args = env::args().skip(1).collect::<Vec<String>>();
     let input = Input::new(args.iter()).unwrap_or_else(|err| {
         eprintln!("Error on parsing arguments: {}", err);

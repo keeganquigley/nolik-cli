@@ -5,7 +5,7 @@ use crate::cli::errors::InputError;
 use crate::cli::input::{Flag, FlagKey};
 use crate::message::data::Data;
 use crate::message::errors::MessageError;
-use crate::message::message::EncryptedMessage;
+use crate::message::message::{EncryptedMessage, Public};
 use crate::message::nonce::Nonce;
 use crate::message::sender::Sender;
 use crate::message::recipient::Recipient;
@@ -126,6 +126,11 @@ impl MessageInput {
     }
 
     pub fn encrypt(&self, sender_pk: &PublicKey, sender_sk: &SecretKey, recipient_pk: &PublicKey) -> Result<EncryptedMessage, MessageError> {
+        let public = Public {
+            nonce: base64::encode(self.otu.nonce.public),
+            sender: base64::encode(self.otu.sender.public),
+        };
+
         let nonce = match Nonce::encrypt(&self, &sender_pk, &recipient_pk) {
             Ok(sender) => sender,
             Err(e) => return Err(e),
@@ -147,6 +152,7 @@ impl MessageInput {
         };
 
         Ok(EncryptedMessage {
+            public,
             nonce,
             sender,
             recipient,

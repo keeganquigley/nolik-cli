@@ -3,6 +3,7 @@
 pub mod commands {
     pub const ADD_WALLET: (&str, &str) = ("add", "wallet");
     pub const ADD_ACCOUNT: (&str, &str) = ("add", "account");
+    pub const ADD_OWNER: (&str, &str) = ("add", "owner");
     pub const COMPOSE_MESSAGE: (&str, &str) = ("compose", "message");
     pub const SEND_MESSAGE: (&str, &str) = ("send", "message");
     pub const GET_MESSAGES: (&str, &str) = ("get", "messages");
