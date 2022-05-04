@@ -3,7 +3,7 @@ use serde_derive::{Serialize, Deserialize};
 use rpassword;
 use crate::cli::errors::{ConfigError, InputError};
 use crate::cli::input::FlagKey;
-use crate::Input;
+use crate::{Config, ConfigFile, Input};
 
 
 pub struct WalletInput {
@@ -64,16 +64,15 @@ impl WalletInput {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Wallet {
+    pub name: String,
     pub public: String,
     pub seed: String,
     pub bs58seed: String,
-    pub name: String,
 }
 
 
 impl Wallet {
     pub fn new(input: WalletInput) -> Result<Wallet, ConfigError> {
-
         let wallet = match input.phrase {
             Some(bs58seed) => {
                 let decoded_vec = match bs58::decode(bs58seed).into_vec() {
@@ -105,15 +104,41 @@ impl Wallet {
 
         Ok(Wallet {
             public: wallet.0.public().to_string(),
-            seed: wallet.1.clone(),
-            bs58seed: bs58::encode(wallet.1).into_string(),
+            bs58seed: bs58::encode(&wallet.1).into_string(),
+            seed: wallet.1,
             name: input.name
         })
     }
 
-    pub fn delete(_wallet: Wallet) -> Result<(), &'static str> {
-        Ok(())
+
+    pub fn add(config_file: ConfigFile, wallet: Wallet) -> Result<(), ConfigError> {
+        let mut config  = match Config::new(config_file) {
+            Ok(config) => config,
+            Err(e) => return Err(e),
+        };
+
+        let same_wallet_names = config.data.wallets
+            .iter()
+            .filter(|el| el.name == wallet.name)
+            .count();
+
+        if let true = same_wallet_names > 0 {
+            return Err(ConfigError::WalletNameIsNotUnique);
+        }
+
+        let same_wallet_seed_phrases = config.data.wallets
+            .iter()
+            .filter(|el| el.bs58seed == wallet.bs58seed)
+            .count();
+
+        if let true = same_wallet_seed_phrases > 0 {
+            return Err(ConfigError::WalletAlreadyExists);
+        }
+
+        config.data.wallets.push(wallet);
+        config.save()
     }
+
 
     pub fn password() -> Result<String, InputError> {
         let password = rpassword::prompt_password("Your wallet password: ").unwrap();

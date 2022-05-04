@@ -1,9 +1,9 @@
 use std::fs;
-use std::io::{ErrorKind, Write};
+use std::io::Write;
 use std::path::PathBuf;
 use serde_derive::{Serialize, Deserialize};
 use rand::{distributions::Alphanumeric, Rng};
-use crate::account::Account;
+use crate::account::AccountOutput;
 use crate::wallet::Wallet;
 use crate::cli::errors::ConfigError;
 
@@ -46,14 +46,14 @@ impl ConfigFile {
     }
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigData {
-
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
     pub wallets: Vec<Wallet>,
 
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
-    pub accounts: Vec<Account>,
+    pub accounts: Vec<AccountOutput>,
 }
 
 
@@ -65,36 +65,27 @@ pub struct Config {
 
 impl Config {
     pub fn new(config_file: ConfigFile) -> Result<Config, ConfigError> {
-        match fs::read_to_string(&config_file.path) {
-            Ok(contents) => {
-                let config_data = Self::parse_config_data(contents);
-                if let Err(e) = config_data { return Err(e); }
-
-                Ok(Config {
-                    file: config_file,
-                    data: config_data.unwrap(),
-                })
-            },
-            Err(e) => {
-                if let ErrorKind::NotFound = e.kind() {
-                    Ok(Config {
-                        file: config_file,
-                        data: ConfigData {
-                            wallets: vec![],
-                            accounts: vec![],
-                        }
-                    })
-                } else {
-                    eprintln!("Error: {}", e);
-                    return Err(ConfigError::CouldNotReadConfigFile)
+        if let false = &config_file.path.exists() {
+            return Ok(Config {
+                file: config_file,
+                data: ConfigData {
+                    wallets: vec![],
+                    accounts: vec![],
                 }
-            }
+            });
         }
-    }
 
-    pub fn parse_config_data(contents: String) -> Result<ConfigData, ConfigError> {
+        if let Err(e) = fs::read_to_string(&config_file.path) {
+            eprintln!("Error: {}", e);
+            return Err(ConfigError::CouldNotReadConfigFile)
+        }
+
+        let contents: String = fs::read_to_string(&config_file.path).unwrap();
         match toml::from_str(contents.as_str()) {
-            Ok(config_data) => Ok(config_data),
+            Ok(config_data) => Ok(Config {
+                file: config_file,
+                data: config_data,
+            }),
             Err(e) => {
                 eprintln!("Error: {}", e);
                 return Err(ConfigError::CouldNotParseConfigFile);
@@ -102,68 +93,8 @@ impl Config {
         }
     }
 
-    pub fn add_wallet(&mut self, wallet: Wallet) -> Result<(), ConfigError> {
 
-        let same_wallet_names = self.data.wallets
-            .iter()
-            .filter(|el| el.name == wallet.name)
-            .count();
-
-        if let true = same_wallet_names > 0 {
-            return Err(ConfigError::WalletNameIsNotUnique);
-        }
-
-        let same_wallet_seed_phrases = self.data.wallets
-            .iter()
-            .filter(|el| el.bs58seed == wallet.bs58seed)
-            .count();
-
-        if let true = same_wallet_seed_phrases > 0 {
-            return Err(ConfigError::WalletAlreadyExists);
-        }
-
-        self.data.wallets.push(wallet);
-
-        match self.save_config() {
-            Ok(_) => {
-                println!("The wallet has been successfully created");
-                Ok(())
-            },
-            Err(e) => return Err(e),
-        }
-    }
-
-    pub fn add_account(&mut self, account: Account) -> Result<(), ConfigError> {
-        let same_account_names = self.data.accounts
-            .iter()
-            .filter(|el| el.name == account.name)
-            .count();
-
-        if let true = same_account_names > 0 {
-            return Err(ConfigError::AccountNameIsNotUnique);
-        }
-
-        let same_account_seeds = self.data.accounts
-            .iter()
-            .filter(|el| el.seed == account.seed)
-            .count();
-
-        if let true = same_account_seeds > 0 {
-            return Err(ConfigError::AccountAlreadyExists);
-        }
-
-        self.data.accounts.push(account);
-
-        match self.save_config() {
-            Ok(_) => {
-                println!("The account has been successfully created");
-                Ok(())
-            },
-            Err(e) => return Err(e),
-        }
-    }
-
-    pub fn save_config(&self) -> Result<(), ConfigError> {
+    pub fn save(&self) -> Result<(), ConfigError> {
         if let false = self.file.dir.exists() {
             if let Err(e) = fs::create_dir(&self.file.dir) {
                 eprintln!("Error: {}", e);
@@ -197,17 +128,6 @@ impl Config {
             }
         }
     }
-
-    pub fn get_account(&self, key: String) -> Option<Account> {
-        let accounts: Vec<Account> = self.data.accounts
-            .iter()
-            .filter(|account| vec![&account.name, &account.public].contains(&&key))
-            .map(|account| account.to_owned())
-            .collect();
-
-        match accounts.len() {
-            1 => Some(accounts.last().unwrap().to_owned()),
-            _ => None,
-        }
-    }
 }
+
+

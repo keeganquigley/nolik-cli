@@ -67,4 +67,14 @@ pub fn base58_to_secret_key(data: &String) -> Result<box_::SecretKey, MessageErr
     }
 }
 
-
+pub fn base58_to_seed(data: &String) -> Result<box_::Seed, MessageError> {
+    match base58_to_vec(data) {
+        Ok(vec) => {
+            match box_::Seed::from_slice(vec.as_slice()) {
+                Some(sk) => Ok(sk),
+                None => return Err(MessageError::DecryptionError),
+            }
+        },
+        Err(e) => return Err(e),
+    }
+}

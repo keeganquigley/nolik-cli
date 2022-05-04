@@ -1,174 +1,227 @@
-use std::fs;
-use std::fs::OpenOptions;
-use std::hash::Hash;
-use std::io::{Cursor, Write};
-// use async_std::io::WriteExt;
-use sodiumoxide::crypto::box_;
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
+use std::io::Cursor;
+use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
-use crate::message::data::{Data, DecryptedData};
+use crate::message::entry::{Entry, EncryptedEntry};
 use serde_derive::{Serialize, Deserialize};
-use sp_runtime::print;
-use toml::to_string;
+use crate::Account;
+use crate::message::blob::{Blob, EncryptedBlob};
 use crate::message::errors::MessageError;
-use crate::message::nonce::Nonce;
-use crate::message::recipient::Recipient;
-use crate::message::sender::Sender;
-
-
-pub enum SenderOrRecipient {
-    Sender(SecretKey),
-    Recipient(SecretKey),
-}
-
-pub enum MessageDirection {
-    In,
-    Out,
-}
-
-
-pub struct DecryptedMessage {
-    pub nonce: box_::Nonce,
-    pub direction: MessageDirection,
-    pub address: PublicKey,
-    pub data: Vec<DecryptedData>
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Public {
-    #[serde(rename = "0")]
-    pub nonce: String,
-
-    #[serde(rename = "1")]
-    pub sender: String,
-}
+use crate::message::party::EncryptedParty;
+use crate::message::utils::{base58_to_public_key, base64_to_nonce, base64_to_public_key};
+use blake2::Digest;
 
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedMessage {
-    pub public: Public,
-    pub nonce: Nonce,
-    pub sender: Sender,
-    pub recipient: Recipient,
+    // #[serde(rename = "n")]
+    pub nonce: String,
 
+    // #[serde(rename = "b")]
+    pub broker: String,
+
+    // #[serde(rename = "s")]
+    pub sender: String,
+
+    // #[serde(rename = "h")]
+    pub hash: String,
+
+    // #[serde(rename = "p")]
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
-    pub data: Vec<Data>
+    pub parties: Vec<EncryptedParty>,
+
+    // #[serde(rename = "e")]
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
+    pub entries: Vec<EncryptedEntry>,
+
+    // #[serde(rename = "b")]
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
+    pub blobs: Vec<EncryptedBlob>,
+
 }
 
 
 impl EncryptedMessage {
-    pub fn decrypt(&self, sor: &SenderOrRecipient) -> Result<DecryptedMessage, MessageError> {
-        let nonce = match sor {
-            SenderOrRecipient::Sender(sk) => match Nonce::decrypt_nonce_for_sender(&self, &sk) {
-                Ok(nonce) => nonce,
-                Err(e) => return Err(e),
-            },
-            SenderOrRecipient::Recipient(sk) => match Nonce::decrypt_nonce_for_recipient(&self, &sk) {
-                Ok(nonce) => nonce,
+    pub fn decrypt(&mut self, account: &Account) -> Result<Message, MessageError> {
+        let public_nonce = match base64_to_nonce(&self.nonce) {
+            Ok(nonce) => nonce,
+            Err(e) => return Err(e),
+        };
+
+        let broker = match base64_to_public_key(&self.broker) {
+            Ok(broker) => broker,
+            Err(e) => return Err(e),
+        };
+
+        let (nonce, parties) =  match Self::decrypt_secret_nonce(&mut self.parties,&public_nonce, &broker, &account.secret) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+
+        let (from, mut to) = match Self::get_from_to(&self, &account, &nonce, &parties) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+
+        let is_sender = from == account.public;
+
+        let entries = match is_sender {
+            true => {
+                match Self::try_decrypt_entries(&self.entries, &nonce, &mut to.clone(), &account.secret) {
+                    Ok(entries) => entries,
+                    Err(e) => return Err(e),
+                }
+            }
+            false => match Self::decrypt_entries(&self.entries, &nonce, &from, &account.secret) {
+                Ok(entries) => entries,
                 Err(e) => return Err(e),
             }
         };
 
 
-        let direction = match sor {
-            SenderOrRecipient::Sender(_) => MessageDirection::In,
-            SenderOrRecipient::Recipient(_) => MessageDirection::Out,
-        };
-
-
-        let address = match sor {
-            SenderOrRecipient::Sender(sk) => match Recipient::decrypt(&self, &nonce, sk) {
-                Ok(nonce) => nonce,
-                Err(e) => return Err(e),
-            },
-            SenderOrRecipient::Recipient(sk) => match Sender::decrypt(&self, &nonce, &sk) {
-                Ok(nonce) => nonce,
+        let blobs = match is_sender {
+            true => {
+                match Self::try_decrypt_blobs(&self.blobs, &nonce, &mut to, &account.secret) {
+                    Ok(entries) => entries,
+                    Err(e) => return Err(e),
+                }
+            }
+            false => match Self::decrypt_blobs(&self.blobs, &nonce, &from, &account.secret) {
+                Ok(entries) => entries,
                 Err(e) => return Err(e),
             }
         };
 
 
-        let data = match sor {
-            SenderOrRecipient::Sender(sk) | SenderOrRecipient::Recipient(sk) => match Data::decrypt(&self, &nonce, &address, &sk) {
-                Ok(data) => data,
-                Err(e) => return Err(e),
-            }
-        };
-
-
-        Ok(DecryptedMessage {
+        Ok(Message {
             nonce,
-            direction,
-            address,
-            data,
+            from,
+            to,
+            entries,
+            blobs,
+            hash: self.hash.to_string(),
         })
     }
 
-    pub async fn save(&self) -> Result<String, MessageError> {
 
+
+    fn decrypt_secret_nonce(parties: &mut Vec<EncryptedParty>, public_nonce: &Nonce, broker: &PublicKey, sk: &SecretKey) -> Result<(Nonce, Vec<PublicKey>), MessageError> {
+        let party  = match parties.pop() {
+            Some(party) => party,
+            None => return Err(MessageError::DecryptionError),
+        };
+
+        match party.decrypt(&public_nonce, &broker, &sk) {
+            Ok(party) => Ok((party.nonce, party.others)),
+            Err(_e) => Self::decrypt_secret_nonce(parties, public_nonce, broker, sk),
+        }
+    }
+
+
+    fn try_decrypt_entries(encrypted_entries: &Vec<EncryptedEntry>, nonce: &Nonce, pks: &mut Vec<PublicKey>, sk: &SecretKey) -> Result<Vec<Entry>, MessageError> {
+        let pk = match pks.pop() {
+            Some(pk) => pk,
+            None => return Err(MessageError::DecryptionError),
+        };
+
+        match Self::decrypt_entries(&encrypted_entries, &nonce, &pk, &sk) {
+            Ok(entries) => Ok(entries),
+            Err(_e) => Self::try_decrypt_entries(encrypted_entries, nonce, pks, sk),
+        }
+    }
+
+
+    fn decrypt_entries(encrypted_entries: &Vec<EncryptedEntry>, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<Vec<Entry>, MessageError> {
+        encrypted_entries
+            .iter()
+            .map(|el|
+                match el.decrypt(&nonce, &pk, &sk) {
+                    Ok(entry) => Ok(entry),
+                    Err(e) => return Err(e)
+                }
+            )
+            .collect()
+    }
+
+
+    fn try_decrypt_blobs(encrypted_blobs: &Vec<EncryptedBlob>, nonce: &Nonce, pks: &mut Vec<PublicKey>, sk: &SecretKey) -> Result<Vec<Blob>, MessageError> {
+        let pk = match pks.pop() {
+            Some(pk) => pk,
+            None => return Err(MessageError::DecryptionError),
+        };
+
+        match Self::decrypt_blobs(&encrypted_blobs, &nonce, &pk, &sk) {
+            Ok(entries) => Ok(entries),
+            Err(_e) => Self::try_decrypt_blobs(encrypted_blobs, nonce, pks, sk),
+        }
+    }
+
+
+    fn decrypt_blobs(encrypted_blobs: &Vec<EncryptedBlob>, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<Vec<Blob>, MessageError> {
+        encrypted_blobs
+            .iter()
+            .map(|el|
+                match el.decrypt(&nonce, &pk, &sk) {
+                    Ok(entry) => Ok(entry),
+                    Err(e) => return Err(e)
+                }
+            )
+            .collect()
+    }
+
+
+    fn get_from_to(&self, account: &Account, nonce: &Nonce, parties: &Vec<PublicKey>) -> Result<(PublicKey, Vec<PublicKey>), MessageError> {
+        let mut all_parties: Vec<PublicKey> = Vec::new();
+        all_parties.push(account.public);
+        for party in parties {
+            all_parties.push(party.to_owned());
+        }
+
+        for pk in &all_parties {
+            let hash = Self::get_pk_salted_hash(&pk, &nonce);
+            if hash == self.sender {
+                let recipients = all_parties.iter().filter(|&el| el.ne(&pk)).map(|pk| *pk).collect();
+                return Ok((pk.to_owned(), recipients))
+            }
+        }
+
+        Err(MessageError::DecryptionError)
+    }
+
+
+    fn get_pk_salted_hash(pk: &PublicKey, nonce: &Nonce) -> String {
+        let mut hasher = blake2::Blake2s256::new();
+        hasher.update(pk);
+        hasher.update(nonce);
+        base64::encode(hasher.finalize().to_vec())
+    }
+
+
+    pub async fn save(&self) -> Result<String, MessageError> {
         let contents = match toml::to_string(&self) {
             Ok(contents) => contents,
             Err(e) => {
-                eprintln!("DATA: {:?}", &self.data);
                 eprintln!("Error: {}", e);
                 return Err(MessageError::CouldNotCreateTomlFileContents);
             },
         };
 
-        // let asd: EncryptedMessage = toml::from_str(contents.as_str()).unwrap();
-        // println!("ASD {:?}", asd);
-        // let asd = contents.clone();
-        // let x = asd.as_bytes();
-
-        // let file_base64 = base64::encode(contents.as_bytes());
-        // let file_hash = sp_core::twox_128(file_base64.as_bytes());
-        // let file_hash_string = format!("{}", hex::encode(file_hash));
-        //
-        // let home_dir = dirs::home_dir().unwrap();
-        // let home_path = home_dir.as_path();
-        // let batch_dir = home_path.join(".nolik").join("export");
-        // let file_name = format!("{}.toml", file_hash_string);
-        // let batch_file = batch_dir.join(file_name);
-        //
-        // let file_options = OpenOptions::new()
-        //     .write(true)
-        //     .read(true)
-        //     .create(true)
-        //     .open(&batch_file);
-
         let client = IpfsClient::default();
-        // match client.bootstrap_add_default().await {
-        //     Ok(res) => {
-        //         println!("Boostrap nodes: {:?}", res);
-        //     },
-        //     Err(e) => {
-        //         eprintln!("Error on pinning IPFS file: {:#?}", e);
-        //         return Err(MessageError::CouldNotAddBootstrapPeers)
-        //     },
-        // }
         let data = Cursor::new(contents);
         match client.add(data).await {
             Ok(res) => {
-                // let ipfs_record = res.last().unwrap();
-
-                println!("Saved composed file to IPFS: {:?}", res.hash);
+                println!("Saved data to IPFS: {:?}", res.hash);
 
                 match client.pin_add(&res.hash, true).await {
                     Ok(_res) => {
-                        // println!("Pin result: {:?}", res);
+                        println!("Data fas bin pinned");
                     },
                     Err(e) => {
                         eprintln!("Error on pinning IPFS file: {:#?}", e);
                         return Err(MessageError::CouldNotAddFileToIPFS)
                     }
                 }
-
-                // let asd = client.get(&res.hash);
-                //     // .cat(res.hash.as_str())
-                //     // .map_ok(|chunk| chunk.to_vec())
-                //     // .try_concat();
-
                 Ok(res.hash)
             },
             Err(e) => {
@@ -176,50 +229,61 @@ impl EncryptedMessage {
                 return Err(MessageError::CouldNotAddFileToIPFS)
             }
         }
-
-        // match file_options {
-        //     Ok(mut file) => {
-        //         println!("Composed a local file: {:?}", &batch_file);
-        //
-        //         match file.write_all(contents.as_ref()) {
-        //             Ok(_) => {
-        //
-        //
-        //             },
-        //             Err(e) => {
-        //                 eprintln!("Error: {}", e);
-        //                 return Err(MessageError::CouldNotSaveContentsToLocalFile);
-        //             }
-        //         }
-        //     },
-        //     Err(e) => {
-        //         eprintln!("Error: {}", e);
-        //         return Err(MessageError::CouldNotCreateLocalFile);
-        //     }
-        // }
     }
+
+
+    // pub fn encode_decrypted_ipfs_data(sor: &SenderOrRecipient, ipfs_hash: &String) {
+    //
+    //     // let handle = async_std::task::spawn(async {
+    //     //     let em = Self::get_encrypted_message(&ipfs_hash).await;
+    //     //     em.unwrap()
+    //     // });
+    //
+    //     let handle = std::thread::spawn(move || {
+    //         // Self::get_encrypted_message(&ipfs_hash)
+    //     });
+    //
+    //     handle.join().unwrap();
+    //
+    //
+    //     // handle.join().unwrap()
+    // }
 }
 
 
 
+#[derive(Debug)]
+pub struct Message {
+    pub nonce: Nonce,
+    pub from: PublicKey,
+    pub to: Vec<PublicKey>,
+    pub entries: Vec<Entry>,
+    pub blobs: Vec<Blob>,
+    pub hash: String,
+}
 
 
+impl Message {
+    pub fn save(&self) {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }
+}
+// trait VectorItems<T, U> where T: Encryption {
+//     fn decrypt(items: Vec<T>, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<Vec<U>, MessageError> {
+//         let mut decrypted_items: Vec<U> = Vec::new();
+//         for item in items {
+//             match item.decrypt(&nonce, &pk, &sk) {
+//                 Ok(decrypted_item) => {
+//                     decrypted_items.push(decrypted_item);
+//                 }
+//                 Err(e) => return Err(e),
+//             };
+//         }
+//
+//         Ok(decrypted_items)
+//     }
+// }
+//
+//
+// impl VectorItems<EncryptedBlob, Blob> for EncryptedBlob { }
+// impl VectorItems<EncryptedEntry, Entry> for EncryptedEntry { }

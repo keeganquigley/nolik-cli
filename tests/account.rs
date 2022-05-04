@@ -25,9 +25,7 @@ mod account {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let mut config = Config::new(config_file.clone()).unwrap();
-
-        config.add_account(account).unwrap();
+        Account::add(config_file.clone(), account).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
@@ -63,9 +61,7 @@ mod account {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let mut config = Config::new(config_file.clone()).unwrap();
-
-        config.add_account(account).unwrap();
+        Account::add(config_file.clone(), account).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
@@ -100,9 +96,7 @@ mod account {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let mut config = Config::new(config_file.clone()).unwrap();
-
-        config.add_account(account).unwrap();
+        Account::add(config_file.clone(), account).unwrap();
 
         let arr = [
             "add",
@@ -117,7 +111,7 @@ mod account {
         let account_input = AccountInput::new(input_b).unwrap();
         let account = Account::new(account_input).unwrap();
 
-        let should_err = config.add_account(account).unwrap_err();
+        let should_err = Account::add(config_file.clone(), account).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -145,9 +139,7 @@ mod account {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let mut config = Config::new(config_file.clone()).unwrap();
-
-        config.add_account(account).unwrap();
+        Account::add(config_file.clone(), account).unwrap();
 
         let arr = [
             "add",
@@ -164,7 +156,7 @@ mod account {
         let account_input = AccountInput::new(input_b).unwrap();
         let account = Account::new(account_input).unwrap();
 
-        let should_err = config.add_account(account).unwrap_err();
+        let should_err = Account::add(config_file.clone(), account).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -215,9 +207,7 @@ mod account {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let mut config = Config::new(config_file.clone()).unwrap();
-
-        config.add_account(account).unwrap();
+        Account::add(config_file.clone(), account).unwrap();
 
         let mut file = fs::OpenOptions::new()
             .write(true)
@@ -227,8 +217,7 @@ mod account {
 
         write!(file, "Some unexpected data\n").unwrap();
 
-        let contents = fs::read_to_string(&config_file.path).unwrap();
-        let toml_data: ConfigError = Config::parse_config_data(contents).unwrap_err();
+        let toml_data: ConfigError = Config::new(config_file.clone()).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 

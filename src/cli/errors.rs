@@ -16,6 +16,7 @@ pub enum InputError {
     PasswordsDoNotMatch,
     SenderDoesNotExist,
     InvalidAddress,
+    CouldNotReadFileBinary,
 }
 
 
@@ -35,6 +36,7 @@ impl Display for InputError {
             InputError::PasswordsDoNotMatch => f.write_str("Provided passwords do not match"),
             InputError::SenderDoesNotExist => f.write_str("Provided sender name does not exist"),
             InputError::InvalidAddress => f.write_str("Provided address is not valid"),
+            InputError::CouldNotReadFileBinary => f.write_str("Could not read file binary"),
        }
     }
 }
@@ -55,6 +57,7 @@ pub enum ConfigError {
     AccountAlreadyExists,
     CouldNotParseAccountSecretKey,
     AccountNameIsNotUnique,
+    CouldNotGetAccount,
 }
 
 
@@ -71,6 +74,7 @@ impl Display for ConfigError {
             ConfigError::AccountAlreadyExists => f.write_str("Account already exists"),
             ConfigError::CouldNotParseAccountSecretKey => f.write_str("Could not parse account secret key"),
             ConfigError::AccountNameIsNotUnique => f.write_str("Account name is not unique"),
+            ConfigError::CouldNotGetAccount => f.write_str("Could not get account from config file"),
         }
     }
 }

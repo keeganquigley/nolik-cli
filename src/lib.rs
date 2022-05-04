@@ -29,12 +29,7 @@ pub fn run(input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             let config_file = ConfigFile::new();
-            let mut config = match Config::new(config_file) {
-                Ok(config) => config,
-                Err(e) => return Err(Box::<dyn Error>::from(e)),
-            };
-
-            if let Err(e) = config.add_wallet(wallet) {
+            if let Err(e) = Wallet::add(config_file, wallet) {
                 return Err(Box::<dyn Error>::from(e));
             }
         }
@@ -50,12 +45,7 @@ pub fn run(input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             let config_file = ConfigFile::new();
-            let mut config = match Config::new(config_file) {
-                Ok(config) => config,
-                Err(e) => return Err(Box::<dyn Error>::from(e)),
-            };
-
-            if let Err(e) = config.add_account(account) {
+            if let Err(e) = Account::add(config_file, account) {
                 return Err(Box::<dyn Error>::from(e));
             }
         },

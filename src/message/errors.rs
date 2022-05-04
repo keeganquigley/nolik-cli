@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Formatter};
 use serde::de::StdError;
 
 #[derive(PartialEq, Debug)]
@@ -12,6 +12,8 @@ pub enum MessageError {
     CouldNotSaveContentsToLocalFile,
     CouldNotCreateLocalFile,
     CouldNotAddBootstrapPeers,
+    CouldNotReadIpfsData,
+    CouldNotDecryptAnyOfParties,
 }
 
 
@@ -26,7 +28,9 @@ impl Display for MessageError {
             MessageError::CouldNotAddFileToIPFS => f.write_str("Could not add file to IPFS"),
             MessageError::CouldNotSaveContentsToLocalFile => f.write_str("Could not save TOML content to local file"),
             MessageError::CouldNotCreateLocalFile => f.write_str("Could not create a local file"),
-            MessageError::CouldNotAddBootstrapPeers => f.write_str("Could not add bootstrap peers")
+            MessageError::CouldNotAddBootstrapPeers => f.write_str("Could not add bootstrap peers"),
+            MessageError::CouldNotReadIpfsData => f.write_str("Could not read IPFS data"),
+            MessageError::CouldNotDecryptAnyOfParties => f.write_str("Could not decrypt any of message parties"),
         }
     }
 }

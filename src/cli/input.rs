@@ -114,7 +114,10 @@ impl Input {
             .collect();
 
         match values.len() {
-            0 => return Err(InputError::NoSuchKey),
+            0 => {
+                println!("No such key: {:?}", flag_key);
+                return Err(InputError::NoSuchKey)
+            },
             _ => Ok(values)
         }
     }
