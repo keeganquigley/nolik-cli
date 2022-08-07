@@ -11,6 +11,7 @@ mod message {
     use nolik_cli::message::ipfs::IpfsInput;
     use blake2::Digest;
     use blake2::digest::Update;
+    use ipfs_api_backend_hyper::IpfsApi;
 
     #[test]
     fn required_arguments_are_not_provided() {
@@ -67,7 +68,7 @@ mod message {
         let mut input = Input::new(args).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        let message_input = MessageInput::new(&mut input, config_file).unwrap_err();
+        let message_input = MessageInput::new(&mut input, &config_file).unwrap_err();
 
         assert_eq!(
             message_input,
@@ -92,7 +93,7 @@ mod message {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Account::add(config_file.clone(), account).unwrap();
+        Account::add(&config_file, account).unwrap();
 
         let arr = [
             "compose",
@@ -106,7 +107,7 @@ mod message {
         let args = arr.iter();
         let mut input = Input::new(args).unwrap();
 
-        let message_input = MessageInput::new(&mut input, config_file.clone()).unwrap();
+        let message_input = MessageInput::new(&mut input, &config_file).unwrap();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -133,7 +134,7 @@ mod message {
         let account_address =account.public.clone();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Account::add(config_file.clone(), account).unwrap();
+        Account::add(&config_file, account).unwrap();
 
         let arr = [
             "compose",
@@ -147,7 +148,7 @@ mod message {
         let args = arr.iter();
         let mut input = Input::new(args).unwrap();
 
-        let message_input = MessageInput::new(&mut input, config_file.clone()).unwrap();
+        let message_input = MessageInput::new(&mut input, &config_file).unwrap();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -174,7 +175,7 @@ mod message {
         let account = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Account::add(config_file.clone(), account).unwrap();
+        Account::add(&config_file, account).unwrap();
 
 
         let arr = [
@@ -189,7 +190,7 @@ mod message {
         let args = arr.iter();
         let mut input = Input::new(args).unwrap();
 
-        let message_input = MessageInput::new(&mut input, config_file.clone()).unwrap_err();
+        let message_input = MessageInput::new(&mut input, &config_file).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -214,7 +215,7 @@ mod message {
         let alice = Account::new(account_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Account::add(config_file.clone(), alice.clone()).unwrap();
+        Account::add(&config_file, alice.clone()).unwrap();
 
         let arr = [
             "add",
@@ -270,7 +271,7 @@ mod message {
         let args = arr.iter();
         let mut input = Input::new(args).unwrap();
 
-        let mi = MessageInput::new(&mut input, config_file.clone()).unwrap();
+        let mi = MessageInput::new(&mut input, &config_file).unwrap();
         // let encrypted_message = mi.encrypt(&rpk).unwrap();
         // let ipfs_hash = encrypted_message.save().await.unwrap();
 
@@ -300,7 +301,7 @@ mod message {
             let encrypted_message = mi.encrypt(&r.public).unwrap();
             let ipfs_hash = encrypted_message.save().await.unwrap();
 
-            let ipfs_input = IpfsInput::new(ipfs_hash);
+            let ipfs_input = IpfsInput::new();
             let mut encrypted_ipfs_data = ipfs_input.get().await.unwrap();
             let decrypted_message = encrypted_ipfs_data.decrypt(&sender).unwrap();
 
@@ -462,7 +463,7 @@ mod message {
         let last_init_blob = mi.blobs.last().unwrap();
         for r in &recipients {
             let encrypted_message = mi.encrypt(&r.public).unwrap();
-            let ipfs_hash = encrypted_message.save().await.unwrap();
+            let ipfs_hash = encrypted_message.save().await.unwrap().hash;
 
             let ipfs_input = IpfsInput::new(ipfs_hash);
             let mut encrypted_ipfs_data = ipfs_input.get().await.unwrap();

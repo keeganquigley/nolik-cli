@@ -15,37 +15,50 @@ impl Rules {
             Command::AddWallet =>
                 Rules {
                     valid_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                         FlagKey::Import,
-                        FlagKey::WithPassword,
                     ],
                     required_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                     ],
                     unique_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                         FlagKey::Import,
-                        FlagKey::WithPassword,
                     ],
                 },
             Command::AddAccount =>
                 Rules {
                     valid_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                         FlagKey::Import,
                     ],
                     required_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                     ],
                     unique_keys: vec![
-                        FlagKey::Name,
+                        FlagKey::Alias,
                         FlagKey::Import,
                     ],
                 },
-            Command::ComposeMessage =>
+            Command::AddOwner =>
                 Rules {
                     valid_keys: vec![
-                        FlagKey::Import,
+                        FlagKey::Wallet,
+                        FlagKey::Account,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Wallet,
+                        FlagKey::Account,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Wallet,
+                        FlagKey::Account,
+                    ]
+                },
+            Command::SendMessage =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                         FlagKey::Key,
@@ -53,13 +66,38 @@ impl Rules {
                         FlagKey::Blob,
                     ],
                     required_keys: vec![
+                        FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                     ],
                     unique_keys: vec![
-                        FlagKey::Import,
+                        FlagKey::Wallet,
                         FlagKey::Sender,
                     ],
+                },
+            Command::GetMessages =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::Account,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Account,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Account,
+                    ]
+                },
+            Command::GetCoins =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::Wallet,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Wallet
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Wallet,
+                    ]
                 },
         }
     }

@@ -14,6 +14,7 @@ pub enum MessageError {
     CouldNotAddBootstrapPeers,
     CouldNotReadIpfsData,
     CouldNotDecryptAnyOfParties,
+    CouldNotSendMessage,
 }
 
 
@@ -31,6 +32,7 @@ impl Display for MessageError {
             MessageError::CouldNotAddBootstrapPeers => f.write_str("Could not add bootstrap peers"),
             MessageError::CouldNotReadIpfsData => f.write_str("Could not read IPFS data"),
             MessageError::CouldNotDecryptAnyOfParties => f.write_str("Could not decrypt any of message parties"),
+            MessageError::CouldNotSendMessage => f.write_str("Could not send the message"),
         }
     }
 }

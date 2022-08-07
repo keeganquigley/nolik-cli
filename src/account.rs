@@ -10,14 +10,14 @@ use crate::message::utils::{base58_to_public_key, base58_to_secret_key, base58_t
 
 
 pub struct AccountInput {
-    name: String,
+    alias: String,
     secret: Option<String>,
 }
 
 impl AccountInput {
     pub fn new(input: Input) -> Result<AccountInput, InputError> {
 
-        let name = match input.get_flag_value(FlagKey::Name) {
+        let alias = match input.get_flag_value(FlagKey::Alias) {
             Ok(name) => name,
             Err(e) => return Err(e)
         };
@@ -33,7 +33,7 @@ impl AccountInput {
         };
 
         Ok(AccountInput {
-            name,
+            alias,
             secret,
         })
     }
@@ -41,7 +41,7 @@ impl AccountInput {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Account {
-    pub name: String,
+    pub alias: String,
     pub public: PublicKey,
     pub secret: SecretKey,
     pub seed: Seed,
@@ -76,12 +76,12 @@ impl Account {
             public: account.0,
             secret: account.1,
             seed: account.2,
-            name: input.name
+            alias: input.alias
         })
     }
 
-    pub fn add(config_file: ConfigFile, account: Account) -> Result<(), ConfigError> {
-        let mut config  = match Config::new(config_file) {
+    pub fn add(config_file: &ConfigFile, account: Account) -> Result<(), ConfigError> {
+        let mut config  = match Config::new(&config_file) {
             Ok(config) => config,
             Err(e) => return Err(e),
         };
@@ -90,7 +90,7 @@ impl Account {
 
         let same_account_names = config.data.accounts
             .iter()
-            .filter(|el| el.name == account_output.name)
+            .filter(|el| el.alias == account_output.alias)
             .count();
 
         if let true = same_account_names > 0 {
@@ -112,14 +112,15 @@ impl Account {
     }
 
 
-    pub fn get(config_file: ConfigFile, key: String) -> Result<Option<Account>, ConfigError>{
-        let config  = match Config::new(config_file) {
+    pub fn get(config_file: &ConfigFile, key: String) -> Result<Account, ConfigError>{
+        let config  = match Config::new(&config_file) {
             Ok(config) => config,
             Err(e) => return Err(e),
         };
+
         let account_outputs: Vec<AccountOutput> = config.data.accounts
             .iter()
-            .filter(|account| vec![&account.name, &account.public].contains(&&key))
+            .filter(|account| vec![&account.alias, &account.public].contains(&&key))
             .map(|account| account.to_owned())
             .collect();
 
@@ -127,12 +128,13 @@ impl Account {
             1 => {
                 let last_account_output = account_outputs.last().unwrap().to_owned();
                 match AccountOutput::deserialize(last_account_output) {
-                    Ok(account) => Some(account),
+                    Ok(account) => account,
                     Err(_e) => return Err(ConfigError::CouldNotGetAccount),
                 }
             }
-            _ => None,
+            _ => return Err(ConfigError::CouldNotGetAccount),
         };
+
 
         Ok(account)
     }
@@ -143,13 +145,13 @@ pub struct AccountOutput {
     pub public: String,
     pub secret: String,
     pub seed: String,
-    pub name: String,
+    pub alias: String,
 }
 
 impl AccountOutput {
     pub fn serialize(account: Account) -> AccountOutput {
         AccountOutput {
-            name: account.name,
+            alias: account.alias,
             public: bs58::encode(&account.public).into_string(),
             secret: bs58::encode(&account.secret).into_string(),
             seed: bs58::encode(&account.seed).into_string(),
@@ -173,7 +175,7 @@ impl AccountOutput {
         };
 
         Ok(Account {
-            name: account_output.name,
+            alias: account_output.alias,
             public,
             secret,
             seed,

@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use serde_derive::{Serialize, Deserialize};
 use rand::{distributions::Alphanumeric, Rng};
 use crate::account::AccountOutput;
-use crate::wallet::Wallet;
+use crate::wallet::{WalletOutput};
 use crate::cli::errors::ConfigError;
+
 
 #[derive(Debug, Clone)]
 pub struct ConfigFile {
@@ -50,7 +51,7 @@ impl ConfigFile {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigData {
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
-    pub wallets: Vec<Wallet>,
+    pub wallets: Vec<WalletOutput>,
 
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
     pub accounts: Vec<AccountOutput>,
@@ -64,10 +65,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(config_file: ConfigFile) -> Result<Config, ConfigError> {
+    pub fn new(config_file: &ConfigFile) -> Result<Config, ConfigError> {
         if let false = &config_file.path.exists() {
             return Ok(Config {
-                file: config_file,
+                file: config_file.to_owned(),
                 data: ConfigData {
                     wallets: vec![],
                     accounts: vec![],
@@ -83,7 +84,7 @@ impl Config {
         let contents: String = fs::read_to_string(&config_file.path).unwrap();
         match toml::from_str(contents.as_str()) {
             Ok(config_data) => Ok(Config {
-                file: config_file,
+                file: config_file.to_owned(),
                 data: config_data,
             }),
             Err(e) => {

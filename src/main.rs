@@ -10,7 +10,7 @@ async fn main() {
         process::exit(1);
     });
 
-    if let Err(e) = nolik_cli::run(input) {
+    if let Err(e) = nolik_cli::run(input).await {
         eprintln!("Application error: {}", e);
         process::exit(1);
     }

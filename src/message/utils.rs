@@ -33,7 +33,7 @@ pub fn base64_to_public_key(data: &String) -> Result<box_::PublicKey, MessageErr
     }
 }
 
-fn base58_to_vec(data: &String) -> Result<Vec<u8>, MessageError> {
+pub fn base58_to_vec(data: &String) -> Result<Vec<u8>, MessageError> {
     match bs58::decode(data).into_vec() {
         Ok(res) => Ok(res),
         Err(e) => {

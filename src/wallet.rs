@@ -1,23 +1,26 @@
 use sp_core::{Pair, sr25519};
 use serde_derive::{Serialize, Deserialize};
 use rpassword;
+use sp_core::sr25519::Public;
 use crate::cli::errors::{ConfigError, InputError};
 use crate::cli::input::FlagKey;
 use crate::{Config, ConfigFile, Input};
+use clearscreen;
 
 
+#[derive(Debug)]
 pub struct WalletInput {
-    name: String,
+    alias: String,
     phrase: Option<String>,
     password: Option<String>,
 }
 
 impl WalletInput {
-    pub fn new(input: Input) -> Result<WalletInput, InputError> {
+    pub fn new(input: Input, password: Option<String>) -> Result<WalletInput, InputError> {
 
-        let name = match input.get_flag_value(FlagKey::Name) {
+        let alias = match input.get_flag_value(FlagKey::Alias) {
             Ok(name) => name,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
 
         let phrase: Option<String> = match input.get_flag_value(FlagKey::Import) {
@@ -30,66 +33,83 @@ impl WalletInput {
             }
         };
 
-        let with_password: Option<bool> = match input.get_flag_value(FlagKey::WithPassword) {
-            Ok(value) => {
-                match value.as_str() {
-                    "no" => None,
-                    _ => Some(true),
-                }
-            },
-            Err(e) => {
-                match e {
-                    InputError::NoSuchKey => Some(true),
-                    _ => return Err(e),
-                }
-            }
-        };
+        // let with_password: Option<bool> = match input.get_flag_value(FlagKey::WithPassword) {
+        //     Ok(value) => {
+        //         match value.as_str() {
+        //             "no" => None,
+        //             _ => Some(true),
+        //         }
+        //     },
+        //     Err(e) => {
+        //         match e {
+        //             InputError::NoSuchKey => Some(true),
+        //             _ => return Err(e),
+        //         }
+        //     }
+        // };
 
-        let password = match with_password {
-            Some(_value) =>
-                match Wallet::password() {
-                    Ok(password) => Some(password),
-                    Err(e) => return Err(e),
-                },
-            None => None
-        };
+        // let password = match with_password {
+        //     Some(_value) =>
+        //         match Wallet::password_input() {
+        //             Ok(password) => Some(password),
+        //             Err(e) => return Err(e),
+        //         },
+        //     None => None
+        // };
 
         Ok(WalletInput {
-            name,
+            alias,
             phrase,
             password
         })
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+
+#[derive(Clone)]
 pub struct Wallet {
-    pub name: String,
-    pub public: String,
+    pub alias: String,
+    pub public: Public,
+    pub pair: sr25519::Pair,
     pub seed: String,
     pub bs58seed: String,
+    pub password: Option<String>,
 }
 
 
 impl Wallet {
     pub fn new(input: WalletInput) -> Result<Wallet, ConfigError> {
         let wallet = match input.phrase {
-            Some(bs58seed) => {
-                let decoded_vec = match bs58::decode(bs58seed).into_vec() {
-                    Ok(vec) => vec,
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                        return Err(ConfigError::CouldNotParseSeed)
-                    }
-                };
+            Some(phrase) => {
+                // let decoded_vec = match bs58::decode(bs58seed).into_vec() {
+                //     Ok(vec) => vec,
+                //     Err(e) => {
+                //         eprintln!("Error: {:?}", e);
+                //         return Err(ConfigError::CouldNotParseSeed)
+                //     }
+                // };
 
-                let phrase = match String::from_utf8(decoded_vec) {
-                    Ok(phrase) => phrase,
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
-                        return Err(ConfigError::CouldNotParseSeed)
-                    }
-                };
+                // println!("bs58seed {:?}", bs58seed);
+                // let decoded_vec = match base58_to_vec(&bs58seed) {
+                //     Ok(vec) => vec,
+                //     Err(e) => {
+                //         eprintln!("Error: {:?}", e);
+                //         return Err(ConfigError::CouldNotParseSeed)
+                //     }
+                // };
+                //
+                //
+                // println!("decoded_vec {:?}", decoded_vec);
+                //
+                // let phrase = match String::from_utf8(decoded_vec) {
+                //     Ok(phrase) => phrase,
+                //     Err(e) => {
+                //         eprintln!("Error: {:?}", e);
+                //         return Err(ConfigError::CouldNotParseSeed)
+                //     }
+                // };
+
+                // println!("phrase {:?}", phrase);
 
                 match sr25519::Pair::from_phrase(&phrase, input.password.as_deref()) {
                     Ok(res) => (res.0, phrase, res.1),
@@ -103,23 +123,25 @@ impl Wallet {
         };
 
         Ok(Wallet {
-            public: wallet.0.public().to_string(),
+            public: wallet.0.public(),
             bs58seed: bs58::encode(&wallet.1).into_string(),
+            pair: wallet.0,
             seed: wallet.1,
-            name: input.name
+            alias: input.alias,
+            password: input.password,
         })
     }
 
 
     pub fn add(config_file: ConfigFile, wallet: Wallet) -> Result<(), ConfigError> {
-        let mut config  = match Config::new(config_file) {
+        let mut config= match Config::new(&config_file) {
             Ok(config) => config,
             Err(e) => return Err(e),
         };
 
         let same_wallet_names = config.data.wallets
             .iter()
-            .filter(|el| el.name == wallet.name)
+            .filter(|el| el.alias == wallet.alias)
             .count();
 
         if let true = same_wallet_names > 0 {
@@ -135,17 +157,95 @@ impl Wallet {
             return Err(ConfigError::WalletAlreadyExists);
         }
 
-        config.data.wallets.push(wallet);
+        config.data.wallets.push(WalletOutput::new(wallet));
         config.save()
     }
 
 
-    pub fn password() -> Result<String, InputError> {
-        let password = rpassword::prompt_password("Your wallet password: ").unwrap();
-        let password_again = rpassword::prompt_password("Please type your wallet password again").unwrap();
+    pub fn get(config_file: &ConfigFile, key: String, password: Option<String>) -> Result<Wallet, ConfigError> {
+        let config= match Config::new(&config_file) {
+            Ok(config) => config,
+            Err(e) => return Err(e),
+        };
+
+        let same_wallet_names: Vec<WalletOutput> = config.data.wallets
+            .iter()
+            .filter(|el| vec![el.alias.clone(), el.public.clone()].contains(&key))
+            .map(|el| el.clone())
+            .collect();
+
+        if let true = same_wallet_names.len() == 0 {
+            return Err(ConfigError::CouldNotGetWallet);
+        }
+
+        let wallet_output = same_wallet_names.last().unwrap().to_owned();
+
+        let wallet_input = WalletInput {
+            alias: wallet_output.alias,
+            phrase: Some(wallet_output.seed),
+            password
+        };
+
+        let wallet = match Wallet::new(wallet_input) {
+            Ok(wallet) => wallet,
+            Err(e) => return Err(e),
+        };
+
+        Ok(wallet)
+    }
+
+
+    pub fn password_input_repeat() -> Result<String, InputError> {
+        clearscreen::clear().expect("failed to clear screen");
+        let password = match rpassword::prompt_password("Your wallet password") {
+            Ok(input) => input,
+            Err(_e) => return Err(InputError::PasswordInputError),
+        };
+
+        let password_again = match rpassword::prompt_password("Your wallet password") {
+            Ok(input) => input,
+            Err(_e) => return Err(InputError::PasswordInputError),
+        };
+
         match password.eq(&password_again) {
-            true => Ok(password),
+            true => {
+                clearscreen::clear().expect("failed to clear screen");
+                Ok(password)
+            },
             false => return Err(InputError::PasswordsDoNotMatch)
+        }
+    }
+
+
+    pub fn password_input_once() -> Result<String, InputError> {
+        clearscreen::clear().expect("failed to clear screen");
+        let password = match rpassword::prompt_password("Your wallet password") {
+            Ok(input) => input,
+            Err(_e) => return Err(InputError::PasswordInputError),
+        };
+
+        clearscreen::clear().expect("failed to clear screen");
+        Ok(password)
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WalletOutput {
+    pub alias: String,
+    pub public: String,
+    pub seed: String,
+    pub bs58seed: String,
+}
+
+
+impl WalletOutput {
+    pub fn new(wallet: Wallet) -> WalletOutput {
+        WalletOutput {
+            alias: wallet.alias,
+            public: wallet.public.to_string(),
+            seed: wallet.seed,
+            bs58seed: wallet.bs58seed,
         }
     }
 }

@@ -5,15 +5,16 @@ use crate::cli::rules::Rules;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FlagKey {
-    Name,
+    Alias,
+    Account,
     Import,
-    WithPassword,
     Sender,
     Recipient,
     Key,
     Value,
     Blob,
     Wallet,
+    IpfsId,
 }
 
 
@@ -21,7 +22,10 @@ pub enum FlagKey {
 pub enum Command {
     AddWallet,
     AddAccount,
-    ComposeMessage,
+    AddOwner,
+    SendMessage,
+    GetMessages,
+    GetCoins,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -47,7 +51,10 @@ impl Input {
                         match (command.as_str(), arg.as_str()) {
                             commands::ADD_WALLET => Command::AddWallet,
                             commands::ADD_ACCOUNT => Command::AddAccount,
-                            commands::COMPOSE_MESSAGE => Command::ComposeMessage,
+                            commands::ADD_OWNER => Command::AddOwner,
+                            commands::SEND_MESSAGE => Command::SendMessage,
+                            commands::GET_MESSAGES => Command::GetMessages,
+                            commands::GET_COINS => Command::GetCoins,
                             _ => return Err(InputError::UnrecognisedCommand)
                         }
                     },
@@ -62,14 +69,15 @@ impl Input {
             match args.next() {
                 Some(value) => {
                     let flag_key: FlagKey = match key.as_str() {
-                        flags::NAME | flags::N => FlagKey::Name,
+                        flags::ALIAS => FlagKey::Alias,
+                        flags::ACCOUNT | flags::A => FlagKey::Account,
                         flags::IMPORT | flags::I => FlagKey::Import,
-                        flags::WITH_PASSWORD => FlagKey::WithPassword,
                         flags::SENDER | flags::S => FlagKey::Sender,
                         flags::RECIPIENT | flags::R => FlagKey::Recipient,
                         flags::KEY | flags::K => FlagKey::Key,
                         flags::VALUE | flags::V => FlagKey::Value,
                         flags::BLOB | flags::B => FlagKey::Blob,
+                        flags::WALLET | flags::W => FlagKey::Wallet,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 
@@ -115,7 +123,7 @@ impl Input {
 
         match values.len() {
             0 => {
-                println!("No such key: {:?}", flag_key);
+                // println!("No such key: {:?}", flag_key);
                 return Err(InputError::NoSuchKey)
             },
             _ => Ok(values)

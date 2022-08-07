@@ -7,8 +7,9 @@ use crate::Account;
 use crate::message::blob::{Blob, EncryptedBlob};
 use crate::message::errors::MessageError;
 use crate::message::party::EncryptedParty;
-use crate::message::utils::{base58_to_public_key, base64_to_nonce, base64_to_public_key};
+use crate::message::utils::{base64_to_nonce, base64_to_public_key};
 use blake2::Digest;
+use crate::message::ipfs::{IpfsFile};
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -198,7 +199,7 @@ impl EncryptedMessage {
     }
 
 
-    pub async fn save(&self) -> Result<String, MessageError> {
+    pub async fn save(&self) -> Result<IpfsFile, MessageError> {
         let contents = match toml::to_string(&self) {
             Ok(contents) => contents,
             Err(e) => {
@@ -211,18 +212,18 @@ impl EncryptedMessage {
         let data = Cursor::new(contents);
         match client.add(data).await {
             Ok(res) => {
-                println!("Saved data to IPFS: {:?}", res.hash);
-
                 match client.pin_add(&res.hash, true).await {
                     Ok(_res) => {
-                        println!("Data fas bin pinned");
+                        println!("File has been saved to the IPFS network with ID: {:?}", res.hash);
                     },
                     Err(e) => {
                         eprintln!("Error on pinning IPFS file: {:#?}", e);
                         return Err(MessageError::CouldNotAddFileToIPFS)
                     }
                 }
-                Ok(res.hash)
+                Ok(IpfsFile {
+                    ipfs_id: res.hash
+                })
             },
             Err(e) => {
                 eprintln!("Error on adding file to IPFS: {:#?}", e);

@@ -77,17 +77,14 @@ pub struct MessageInput {
 
 
 impl MessageInput {
-    pub fn new(input: &mut Input, config_file: ConfigFile) -> Result<MessageInput, InputError> {
+    pub fn new(input: &mut Input, config_file: &ConfigFile) -> Result<MessageInput, InputError> {
         let sender_key = match input.get_flag_value(FlagKey::Sender) {
             Ok(key) => key,
             Err(e) => return Err(e)
         };
 
-        let sender = match Account::get(config_file, sender_key) {
-            Ok(account) => match account {
-                Some(account) => account,
-                None => return Err(InputError::SenderDoesNotExist),
-            },
+        let sender = match Account::get(&config_file, sender_key) {
+            Ok(account) => account,
             Err(_e) => return Err(InputError::SenderDoesNotExist),
         };
 
@@ -183,11 +180,6 @@ impl MessageInput {
 
         let encrypted_party = party.encrypt(&self, &self.sender.public);
         parties.push(encrypted_party);
-
-
-        // for pk in &self.recipients {
-        //
-        // }
 
 
         let party = Party {

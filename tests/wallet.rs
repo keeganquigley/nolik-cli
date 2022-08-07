@@ -15,8 +15,8 @@ mod wallet {
             "wallet",
             "--name",
             "alice",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -53,8 +53,8 @@ mod wallet {
             "alice",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -90,8 +90,8 @@ mod wallet {
             "wallet",
             "--name",
             "alice",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -108,8 +108,8 @@ mod wallet {
             "wallet",
             "--name",
             "alice",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -137,8 +137,8 @@ mod wallet {
             "alice",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -157,8 +157,8 @@ mod wallet {
             "bob",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -186,8 +186,8 @@ mod wallet {
             "alice",
             "--import",
             "#ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            "--with-password",
-            "no"
+            // "--with-password",
+            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
@@ -224,7 +224,7 @@ mod wallet {
         write!(file, "Some unexpected data\n").unwrap();
 
         // let contents = fs::read_to_string(&config_file.path).unwrap();
-        let toml_data: ConfigError = Config::new(config_file.clone()).unwrap_err();
+        let toml_data: ConfigError = Config::new(&config_file).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 

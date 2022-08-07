@@ -14,9 +14,11 @@ pub enum InputError {
     NonUniqueKeys,
     NoSuchKey,
     PasswordsDoNotMatch,
+    PasswordInputError,
     SenderDoesNotExist,
     InvalidAddress,
     CouldNotReadFileBinary,
+    CouldNotAddOwner,
 }
 
 
@@ -34,9 +36,11 @@ impl Display for InputError {
             InputError::NonUniqueKeys => f.write_str("Non unique flags"),
             InputError::NoSuchKey => f.write_str("No such key"),
             InputError::PasswordsDoNotMatch => f.write_str("Provided passwords do not match"),
+            InputError::PasswordInputError => f.write_str("Password input error"),
             InputError::SenderDoesNotExist => f.write_str("Provided sender name does not exist"),
             InputError::InvalidAddress => f.write_str("Provided address is not valid"),
             InputError::CouldNotReadFileBinary => f.write_str("Could not read file binary"),
+            InputError::CouldNotAddOwner => f.write_str("Could not add owner"),
        }
     }
 }
@@ -58,6 +62,7 @@ pub enum ConfigError {
     CouldNotParseAccountSecretKey,
     AccountNameIsNotUnique,
     CouldNotGetAccount,
+    CouldNotGetWallet,
 }
 
 
@@ -75,6 +80,7 @@ impl Display for ConfigError {
             ConfigError::CouldNotParseAccountSecretKey => f.write_str("Could not parse account secret key"),
             ConfigError::AccountNameIsNotUnique => f.write_str("Account name is not unique"),
             ConfigError::CouldNotGetAccount => f.write_str("Could not get account from config file"),
+            ConfigError::CouldNotGetWallet => f.write_str("Could not get wallet from config file"),
         }
     }
 }
