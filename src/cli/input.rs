@@ -15,6 +15,8 @@ pub enum FlagKey {
     Blob,
     Wallet,
     IpfsId,
+    Add,
+    For,
 }
 
 
@@ -23,6 +25,7 @@ pub enum Command {
     AddWallet,
     AddAccount,
     AddOwner,
+    UpdateWhitelist,
     SendMessage,
     GetMessages,
     GetCoins,
@@ -52,6 +55,7 @@ impl Input {
                             commands::ADD_WALLET => Command::AddWallet,
                             commands::ADD_ACCOUNT => Command::AddAccount,
                             commands::ADD_OWNER => Command::AddOwner,
+                            commands::UPDATE_WHITELIST => Command::UpdateWhitelist,
                             commands::SEND_MESSAGE => Command::SendMessage,
                             commands::GET_MESSAGES => Command::GetMessages,
                             commands::GET_COINS => Command::GetCoins,
@@ -78,6 +82,8 @@ impl Input {
                         flags::VALUE | flags::V => FlagKey::Value,
                         flags::BLOB | flags::B => FlagKey::Blob,
                         flags::WALLET | flags::W => FlagKey::Wallet,
+                        flags::ADD => FlagKey::Add,
+                        flags::FOR => FlagKey::For,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 
@@ -123,7 +129,7 @@ impl Input {
 
         match values.len() {
             0 => {
-                // println!("No such key: {:?}", flag_key);
+                println!("No such key: {:?}", flag_key);
                 return Err(InputError::NoSuchKey)
             },
             _ => Ok(values)

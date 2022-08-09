@@ -36,6 +36,16 @@ impl Call for NolikAddOwnerCall {
 }
 
 
+pub struct NolikAddToWhitelist;
+
+impl Encode for NolikAddToWhitelist {}
+
+impl Call for NolikAddToWhitelist {
+    const PALLET: &'static str = "Nolik";
+    const FUNCTION: &'static str = "add_to_whitelist";
+}
+
+
 pub async fn call_indexes<T: Call>() -> Result<(u8, u8), NodeError> {
 
     let api = ClientBuilder::new()
@@ -139,12 +149,12 @@ pub async fn add_owner(pair: &sp_core::sr25519::Pair, address: &PublicKey) -> Re
         Err(e) => return Err(e),
     };
 
-    let call: [u8; 2] = [pallet_index, call_index];
+    let indexes: [u8; 2] = [pallet_index, call_index];
     let call_owner: [u8; 1] = [0];
     let address = bs58::encode(&address).into_string();
 
     let call: Vec<u8>  = [
-        call.to_vec(),
+        indexes.to_vec(),
         address.encode(),
         call_owner.to_vec()
     ].concat();
@@ -183,23 +193,30 @@ pub async fn add_owner(pair: &sp_core::sr25519::Pair, address: &PublicKey) -> Re
 
 
 pub async fn add_to_whitelist(
-    owner: AccountId32,
     pair: &sp_core::sr25519::Pair,
-    add_to: Vec<u8>,
-    new_address: Vec<u8>) -> Result<String, NodeError> {
+    add_to: &PublicKey,
+    new_address: &PublicKey) -> Result<String, NodeError> {
 
-    // let owner = identity.to_account_id();
+    let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
+    let add_to = bs58::encode(&add_to).into_string();
+    let new_address = bs58::encode(&new_address).into_string();
+
     let (nonce, genesis_hash, runtime_version) = match get_meta(&owner).await {
         Ok(res) => res,
         Err(e) => return Err(e),
     };
 
-    let pallet_index: u8 = 8;
-    let method_index: u8 = 1;
-    let call_index: [u8; 2] = [pallet_index, method_index];
+    let (pallet_index, call_index) = match call_indexes::<NolikAddToWhitelist>().await {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
 
-    let call: Vec<u8>  = [call_index.to_vec(), add_to.encode().clone(), new_address.encode().clone()].concat();
-
+    let indexes: [u8; 2] = [pallet_index, call_index];
+    let call: Vec<u8>  = [
+        indexes.to_vec(),
+        add_to.encode().clone(),
+        new_address.encode().clone()
+    ].concat();
 
     let extra = (
         Era::Immortal,
@@ -216,7 +233,7 @@ pub async fn add_to_whitelist(
 
     let call_tup = (
         pallet_index,
-        method_index,
+        call_index,
         add_to,
         new_address,
     );

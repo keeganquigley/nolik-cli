@@ -7,6 +7,7 @@ pub mod account;
 pub mod message;
 pub mod send;
 pub mod owner;
+pub mod whitelist;
 
 use std::error::Error;
 use colored::Colorize;
@@ -24,6 +25,7 @@ use sp_core::crypto::AccountId32;
 use sp_keyring::AccountKeyring;
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
 use crate::node::extrinsics::balance_transfer;
+use crate::whitelist::Whitelist;
 
 
 #[subxt::subxt(runtime_metadata_path = "metadata.scale")]
@@ -83,6 +85,24 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             match owner.add().await {
+                Ok(_res) => {},
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            }
+        },
+        Command::UpdateWhitelist => {
+            let config_file: ConfigFile = ConfigFile::new();
+
+            let password = match Wallet::password_input_once() {
+                Ok(password) => Some(password),
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let whitelist = match Whitelist::new(&input, &config_file, password) {
+                Ok(whitelist) => whitelist,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            match whitelist.update().await {
                 Ok(_res) => {},
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }

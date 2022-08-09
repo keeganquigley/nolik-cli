@@ -55,6 +55,24 @@ impl Rules {
                         FlagKey::Account,
                     ]
                 },
+            Command::UpdateWhitelist =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                    required_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                },
             Command::SendMessage =>
                 Rules {
                     valid_keys: vec![

@@ -97,6 +97,8 @@ pub trait NodeEvent {
                             let pallet_error = match error_metadata.error() {
                                 pallet_errors::ERROR_ACCOUNT_IN_OWNERS => PalletError::AccountInOwners,
                                 pallet_errors::ERROR_ADDRESS_NOT_OWNED => PalletError::AddressNotOwned,
+                                pallet_errors::ERROR_ALREADY_IN_WHITELIST => PalletError::AlreadyInWhiteList,
+                                pallet_errors::ERROR_SAME_ADDRESS => PalletError::SameAddress,
                                 _ => PalletError::UnknownError,
                             };
 
@@ -125,11 +127,21 @@ impl NodeEvent for AddOwnerEvent {
 
 
 #[derive(Debug)]
+pub struct AddToWhitelist;
+
+impl NodeEvent for AddToWhitelist {
+    type S = polkadot::nolik::events::AddWhiteList;
+    type F = polkadot::system::events::ExtrinsicFailed;
+}
+
+
+#[derive(Debug)]
 pub struct BalanceTransferEvent;
 
 impl NodeEvent for BalanceTransferEvent {
     type S = polkadot::balances::events::Transfer;
     type F = polkadot::system::events::ExtrinsicFailed;
 }
+
 
 

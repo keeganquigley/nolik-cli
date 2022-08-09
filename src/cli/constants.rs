@@ -31,9 +31,13 @@ pub mod flags {
     pub const BLOB: &str = "--blob";
     pub const W: &str = "-w";
     pub const WALLET: &str = "--wallet";
+    pub const ADD: &str = "--add";
+    pub const FOR: &str = "--for";
 }
 
 pub mod pallet_errors {
     pub const ERROR_ACCOUNT_IN_OWNERS: &str = "AccountInOwners";
     pub const ERROR_ADDRESS_NOT_OWNED: &str = "AddressNotOwned";
+    pub const ERROR_SAME_ADDRESS: &str = "SameAddress";
+    pub const ERROR_ALREADY_IN_WHITELIST: &str = "AlreadyInWhiteList";
 }

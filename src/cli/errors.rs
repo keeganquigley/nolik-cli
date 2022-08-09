@@ -19,12 +19,13 @@ pub enum InputError {
     InvalidAddress,
     CouldNotReadFileBinary,
     CouldNotAddOwner,
+    CouldNotUpdateWhitelist,
 }
 
 
 impl Display for InputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-       match self {
+        match self {
             InputError::UnrecognisedCommand => f.write_str("Unrecognised command"),
             InputError::NotEnoughArguments => f.write_str("Not enough arguments"),
             InputError::NoArguments => f.write_str("No arguments"),
@@ -34,14 +35,15 @@ impl Display for InputError {
             InputError::NoCorrespondingValue => f.write_str("No corresponding value to provided key"),
             InputError::RequiredKeysMissing => f.write_str("Required keys are missing"),
             InputError::NonUniqueKeys => f.write_str("Non unique flags"),
-            InputError::NoSuchKey => f.write_str("No such key"),
+            InputError::NoSuchKey => f.write_str("Required key is missing"),
             InputError::PasswordsDoNotMatch => f.write_str("Provided passwords do not match"),
             InputError::PasswordInputError => f.write_str("Password input error"),
             InputError::SenderDoesNotExist => f.write_str("Provided sender name does not exist"),
             InputError::InvalidAddress => f.write_str("Provided address is not valid"),
             InputError::CouldNotReadFileBinary => f.write_str("Could not read file binary"),
             InputError::CouldNotAddOwner => f.write_str("Could not add owner"),
-       }
+            InputError::CouldNotUpdateWhitelist => f.write_str("Could not update Whitelist"),
+        }
     }
 }
 

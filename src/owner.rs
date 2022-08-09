@@ -5,9 +5,6 @@ use crate::node::extrinsics::add_owner;
 use crate::node::events::{AddOwnerEvent, NodeEvent};
 use colored::Colorize;
 
-#[subxt::subxt(runtime_metadata_path = "metadata.scale")]
-pub mod polkadot {}
-
 pub struct Owner {
     wallet: Wallet,
     account: Account,
