@@ -32,3 +32,8 @@ pub mod flags {
     pub const W: &str = "-w";
     pub const WALLET: &str = "--wallet";
 }
+
+pub mod pallet_errors {
+    pub const ERROR_ACCOUNT_IN_OWNERS: &str = "AccountInOwners";
+    pub const ERROR_ADDRESS_NOT_OWNED: &str = "AddressNotOwned";
+}

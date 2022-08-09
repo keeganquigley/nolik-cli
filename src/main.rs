@@ -1,6 +1,7 @@
 use std::{env, process};
 use nolik_cli::cli::input::Input;
 use async_std;
+use colored::Colorize;
 
 #[async_std::main]
 async fn main() {
@@ -11,7 +12,8 @@ async fn main() {
     });
 
     if let Err(e) = nolik_cli::run(input).await {
-        eprintln!("Application error: {}", e);
+        let err = format!("Application error: {}", e);
+        eprintln!("{}", err.bright_red());
         process::exit(1);
     }
 }

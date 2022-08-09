@@ -81,36 +81,6 @@ impl Wallet {
     pub fn new(input: WalletInput) -> Result<Wallet, ConfigError> {
         let wallet = match input.phrase {
             Some(phrase) => {
-                // let decoded_vec = match bs58::decode(bs58seed).into_vec() {
-                //     Ok(vec) => vec,
-                //     Err(e) => {
-                //         eprintln!("Error: {:?}", e);
-                //         return Err(ConfigError::CouldNotParseSeed)
-                //     }
-                // };
-
-                // println!("bs58seed {:?}", bs58seed);
-                // let decoded_vec = match base58_to_vec(&bs58seed) {
-                //     Ok(vec) => vec,
-                //     Err(e) => {
-                //         eprintln!("Error: {:?}", e);
-                //         return Err(ConfigError::CouldNotParseSeed)
-                //     }
-                // };
-                //
-                //
-                // println!("decoded_vec {:?}", decoded_vec);
-                //
-                // let phrase = match String::from_utf8(decoded_vec) {
-                //     Ok(phrase) => phrase,
-                //     Err(e) => {
-                //         eprintln!("Error: {:?}", e);
-                //         return Err(ConfigError::CouldNotParseSeed)
-                //     }
-                // };
-
-                // println!("phrase {:?}", phrase);
-
                 match sr25519::Pair::from_phrase(&phrase, input.password.as_deref()) {
                     Ok(res) => (res.0, phrase, res.1),
                     Err(e) => {

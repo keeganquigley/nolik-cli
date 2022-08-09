@@ -239,6 +239,7 @@ struct ChainGetBlockHeaderDigest {
 }
 
 
+
 pub async fn get_nonce(socket: &mut Socket, account: &sp_runtime::AccountId32) -> Result<u32, NodeError> {
 
     let req = NodeRequest {
@@ -266,38 +267,6 @@ pub async fn get_nonce(socket: &mut Socket, account: &sp_runtime::AccountId32) -
     };
 
     Ok(nonce.result)
-
-
-    // let client = reqwest::Client::new();
-
-    // let res = client
-    //     .post("http://localhost:9933")
-    //     .json(&serde_json::json!(req))
-    //     .send()
-    //     .await;
-    //
-    // match res {
-    //     Ok(res) => {
-    //         match res.status() {
-    //             reqwest::StatusCode::OK => {
-    //                 match res.json::<SystemAccountNextIndexSuccess>().await {
-    //                     Ok(parsed) => {
-    //                         Ok(parsed.result)
-    //                     },
-    //                     Err(e) => {
-    //                         eprintln!("Error: {:?}", e);
-    //                         return Err(NodeError::CouldNotGetAccountNonce)
-    //                     }
-    //                 }
-    //             },
-    //             _ => return Err(NodeError::CouldNotGetAccountNonce),
-    //         }
-    //     },
-    //     Err(e) => {
-    //         eprintln!("Error: {:?}", e);
-    //         return Err(NodeError::CouldNotGetAccountNonce)
-    //     }
-    // }
 }
 
 
@@ -330,45 +299,6 @@ pub async fn get_genesis_hash(socket: &mut Socket) -> Result<H256, NodeError> {
     let genesis_hash = hash.result.replace("0x", "");
 
     Ok(sp_core::H256::from_str(genesis_hash.as_ref()).unwrap())
-
-
-    // let client = reqwest::Client::new();
-    // let req = NodeRequest {
-    //     id: 1,
-    //     jsonrpc: "2.0".to_string(),
-    //     method: "chain_getBlockHash".to_string(),
-    //     params: vec!["0".to_string()]
-    // };
-    //
-    // let res = client
-    //     .post("http://localhost:9933")
-    //     .json(&serde_json::json!(req))
-    //     .send()
-    //     .await;
-    //
-    // match res {
-    //     Ok(res) => {
-    //         match res.status() {
-    //             reqwest::StatusCode::OK => {
-    //                 match res.json::<ChainGetBlockHashSuccess>().await {
-    //                     Ok(parsed) => {
-    //                         let genesis_hash = parsed.result.replace("0x", "");
-    //                         Ok(sp_core::H256::from_str(genesis_hash.as_ref()).unwrap())
-    //                     },
-    //                     Err(e) => {
-    //                         eprintln!("Error: {:?}", e);
-    //                         return Err(NodeError::CouldNotGetGenesisHash)
-    //                     }
-    //                 }
-    //             },
-    //             _ => return Err(NodeError::CouldNotGetGenesisHash),
-    //         }
-    //     },
-    //     Err(e) => {
-    //         eprintln!("Error: {:?}", e);
-    //         return Err(NodeError::CouldNotGetGenesisHash)
-    //     }
-    // }
 }
 
 
@@ -398,42 +328,6 @@ pub async fn get_runtime_version(socket: &mut Socket) -> Result<StateGetRuntimeV
     };
 
     Ok(runtime_version.result)
-    // let client = reqwest::Client::new();
-    // let req = NodeRequest {
-    //     id: 1,
-    //     jsonrpc: "2.0".to_string(),
-    //     method: "state_getRuntimeVersion".to_string(),
-    //     params: vec![]
-    // };
-    //
-    // let res = client
-    //     .post("http://localhost:9933")
-    //     .json(&serde_json::json!(req))
-    //     .send()
-    //     .await;
-    //
-    // match res {
-    //     Ok(res) => {
-    //         match res.status() {
-    //             reqwest::StatusCode::OK => {
-    //                 match res.json::<StateGetRuntimeVersionSuccess>().await {
-    //                     Ok(parsed) => {
-    //                         Ok(parsed.result)
-    //                     },
-    //                     Err(e) => {
-    //                         eprintln!("Error: {:?}", e);
-    //                         return Err(NodeError::CouldNotGetRuntimeVersion)
-    //                     }
-    //                 }
-    //             },
-    //             _ => return Err(NodeError::CouldNotGetRuntimeVersion),
-    //         }
-    //     },
-    //     Err(e) => {
-    //         eprintln!("Error: {:?}", e);
-    //         return Err(NodeError::CouldNotGetRuntimeVersion)
-    //     }
-    // }
 }
 
 
@@ -463,42 +357,6 @@ pub async fn get_runtime_metadata(socket: &mut Socket) -> Result<String, NodeErr
     };
 
     Ok(runtime_metadata.result)
-    // let client = reqwest::Client::new();
-    // let req = NodeRequest {
-    //     id: 1,
-    //     jsonrpc: "2.0".to_string(),
-    //     method: "state_getRuntimeVersion".to_string(),
-    //     params: vec![]
-    // };
-    //
-    // let res = client
-    //     .post("http://localhost:9933")
-    //     .json(&serde_json::json!(req))
-    //     .send()
-    //     .await;
-    //
-    // match res {
-    //     Ok(res) => {
-    //         match res.status() {
-    //             reqwest::StatusCode::OK => {
-    //                 match res.json::<StateGetRuntimeVersionSuccess>().await {
-    //                     Ok(parsed) => {
-    //                         Ok(parsed.result)
-    //                     },
-    //                     Err(e) => {
-    //                         eprintln!("Error: {:?}", e);
-    //                         return Err(NodeError::CouldNotGetRuntimeVersion)
-    //                     }
-    //                 }
-    //             },
-    //             _ => return Err(NodeError::CouldNotGetRuntimeVersion),
-    //         }
-    //     },
-    //     Err(e) => {
-    //         eprintln!("Error: {:?}", e);
-    //         return Err(NodeError::CouldNotGetRuntimeVersion)
-    //     }
-    // }
 }
 
 
@@ -598,49 +456,6 @@ pub async fn call_extrinsic(call_hex: &String) -> Result<String, NodeError> {
             }
         }
     }
-
-
-
-
-
-
-    // Ok(runtime_version.result)
-    // let client = reqwest::Client::new();
-    // let req = NodeRequest {
-    //     id: 1,
-    //     jsonrpc: "2.0".to_string(),
-    //     method: "author_submitExtrinsic".to_string(),
-    //     params: vec![call_hex.to_string()]
-    // };
-    //
-    // let res = client
-    //     .post("http://localhost:9933")
-    //     .json(&serde_json::json!(req))
-    //     .send()
-    //     .await;
-    //
-    // match res {
-    //     Ok(res) => {
-    //         match res.status() {
-    //             reqwest::StatusCode::OK => {
-    //                 match res.json::<AuthorSubmitExtrinsicSuccess>().await {
-    //                     Ok(parsed) => {
-    //                         Ok(parsed.result)
-    //                     },
-    //                     Err(e) => {
-    //                         eprintln!("Error: {:?}", e);
-    //                         return Err(NodeError::CouldNotCallExtrinsic)
-    //                     },
-    //                 }
-    //             },
-    //             _ => return Err(NodeError::CouldNotCallExtrinsic)
-    //         }
-    //     },
-    //     Err(e) => {
-    //         eprintln!("Error: {:?}", e);
-    //         return Err(NodeError::CouldNotCallExtrinsic)
-    //     },
-    // }
 }
 
 
