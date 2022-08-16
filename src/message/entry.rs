@@ -29,10 +29,7 @@ impl Entry {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EncryptedEntry {
-    // #[serde(rename = "k")]
     pub key: String,
-
-    // #[serde(rename = "v")]
     pub value: String,
 }
 
@@ -41,6 +38,13 @@ impl Encryption for EncryptedEntry {}
 
 
 impl EncryptedEntry {
+    pub fn new(key: String, value: String) -> EncryptedEntry {
+        EncryptedEntry {
+            key,
+            value,
+        }
+    }
+
     pub fn decrypt(&self, nonce: &Nonce, sender_pk: &PublicKey, recipient_sk: &SecretKey) -> Result<Entry, MessageError> {
         let encrypted_key = match base64_to_vec(&self.key) {
             Ok(key) => key,

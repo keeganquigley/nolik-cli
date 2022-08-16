@@ -5,46 +5,43 @@ use crate::message::errors::MessageError;
 use crate::message::utils::base64_to_vec;
 
 #[derive(Debug)]
-pub struct Blob {
+pub struct File {
     pub binary: Vec<u8>,
     pub name: String,
 }
 
 
-impl Encryption for Blob {}
+impl Encryption for File {}
 
 
-impl Blob {
-    pub fn encrypt(&self, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> EncryptedBlob {
-        let file = Blob::encrypt_data(&self.binary.as_slice(), &nonce, pk, sk);
-        let name = Blob::encrypt_data(&self.name.as_bytes(), &nonce, pk, sk);
+impl File {
+    pub fn encrypt(&self, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> EncryptedFile {
+        let file = File::encrypt_data(&self.binary.as_slice(), &nonce, pk, sk);
+        let name = File::encrypt_data(&self.name.as_bytes(), &nonce, pk, sk);
 
-        EncryptedBlob { file, name }
+        EncryptedFile { file, name }
     }
 }
 
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct EncryptedBlob {
-    // #[serde(rename = "f")]
+pub struct EncryptedFile {
     file: String,
-
-    // #[serde(rename = "n")]
     name: String,
 }
 
 
-impl Encryption for EncryptedBlob {}
+impl Encryption for EncryptedFile {}
 
 
-impl EncryptedBlob {
-    pub fn decrypt(&self, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<Blob, MessageError> {
+impl EncryptedFile {
+    pub fn decrypt(&self, nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<File, MessageError> {
         let encrypted_binary = match base64_to_vec(&self.file) {
             Ok(res) => res,
             Err(e) => return Err(e),
         };
 
-        let binary = match EncryptedBlob::decrypt_data(&encrypted_binary, nonce, pk, sk) {
+        let binary = match EncryptedFile::decrypt_data(&encrypted_binary, nonce, pk, sk) {
             Ok(binary ) => binary,
             Err(e) => return Err(e),
         };
@@ -54,7 +51,7 @@ impl EncryptedBlob {
             Err(e) => return Err(e),
         };
 
-        let name = match EncryptedBlob::decrypt_data(&encrypted_name, nonce, pk, sk) {
+        let name = match EncryptedFile::decrypt_data(&encrypted_name, nonce, pk, sk) {
             Ok(name) => match String::from_utf8(name) {
                 Ok(name) => name,
                 Err(e) => {
@@ -65,6 +62,6 @@ impl EncryptedBlob {
             Err(e) => return Err(e),
         };
 
-        Ok(Blob { binary, name })
+        Ok(File { binary, name })
     }
 }

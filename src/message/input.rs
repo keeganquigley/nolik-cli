@@ -1,18 +1,20 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
+use blake2::Digest;
+use blake2::digest::Update;
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use crate::{Account, ConfigFile, Input};
 use crate::cli::errors::InputError;
 use crate::cli::input::FlagKey;
-use crate::message::blob::{Blob, EncryptedBlob};
+use crate::message::file::{File, EncryptedFile};
 use crate::message::entry::{Entry, EncryptedEntry};
-use crate::message::errors::MessageError;
+// use crate::message::errors::MessageError;
 use crate::message::message::EncryptedMessage;
-use crate::message::party::{EncryptedParty, Party};
 use crate::message::utils::base58_to_public_key;
-use blake2::Digest;
+// use crate::message::nonce::Nonce;
+// use crate::message::parties::Parties;
 
 #[derive(Debug)]
 pub struct OneTimeUseNonce {
@@ -71,7 +73,7 @@ pub struct MessageInput {
     pub sender: Account,
     pub recipients: Vec<PublicKey>,
     pub entries: Vec<Entry>,
-    pub blobs: Vec<Blob>,
+    pub files: Vec<File>,
     pub otu: OneTimeUse,
 }
 
@@ -116,7 +118,7 @@ impl MessageInput {
             }
         }
 
-        let blob_values = match input.get_flag_values(FlagKey::Blob) {
+        let file_values = match input.get_flag_values(FlagKey::File) {
             Ok(values) => values,
             Err(e) => {
                 match e {
@@ -126,8 +128,8 @@ impl MessageInput {
             }
         };
 
-        let mut blobs: Vec<Blob> = Vec::new();
-        for path in blob_values {
+        let mut files: Vec<File> = Vec::new();
+        for path in file_values {
             let file = Path::new(&path);
             println!("PATH {:?}", file);
             let binary= match fs::read(file) {
@@ -143,90 +145,66 @@ impl MessageInput {
                 _ => "".to_string(),
             };
 
-            let blob = Blob {
+            let file = File {
                 binary,
                 name,
             };
 
-            blobs.push(blob);
+            files.push(file);
         }
-
 
         Ok(MessageInput {
             sender,
             recipients,
             entries,
-            blobs,
+            files,
             otu: OneTimeUse::new(),
         })
     }
 
-    pub fn encrypt(&self, pk: &PublicKey) -> Result<EncryptedMessage, MessageError> {
-        let mut parties: Vec<EncryptedParty> = Vec::new();
+    pub fn encrypt(&self, pk: &PublicKey) -> EncryptedMessage {
+        // let nonce: Nonce = Nonce::new(self.otu.nonce.secret);
+        // let encrypted_nonce = nonce.encrypt(&self.otu.nonce.public, &pk, &self.sender.secret);
+        //
+        // let mut parties: Parties = Parties::new();
+        // parties.add(&self.sender.public);
+        // for recipient in &self.recipients {
+        //     parties.add(recipient);
+        // }
+        //
+        // let encrypted_parties = parties.encrypt(&self.otu.nonce.secret, pk, &self.sender.secret);
+        let mut parties = blake2::Blake2s256::new();
+        Update::update(&mut parties, &self.sender.public.as_ref());
+        Update::update(&mut parties, &pk.as_ref());
+        let parties_hash = base64::encode(parties.finalize().to_vec());
+
+
         let mut entries: Vec<EncryptedEntry> = Vec::new();
-        let mut blobs: Vec<EncryptedBlob> = Vec::new();
-        let mut hasher = blake2::Blake2s256::new();
-
-        hasher.update(&self.otu.nonce.public);
-        hasher.update(&self.otu.nonce.secret);
-        hasher.update(&self.otu.broker.public);
-        hasher.update(&self.sender.public);
-        hasher.update(&pk);
-
-        let party = Party {
-            nonce: self.otu.nonce.secret,
-            others: self.other_pks(&self.sender.public),
-        };
-
-        let encrypted_party = party.encrypt(&self, &self.sender.public);
-        parties.push(encrypted_party);
-
-
-        let party = Party {
-            nonce: self.otu.nonce.secret,
-            others: self.other_pks(&pk),
-        };
-        let encrypted_party = party.encrypt(&self, &pk);
-        parties.push(encrypted_party);
+        let mut files: Vec<EncryptedFile> = Vec::new();
 
         for entry in &self.entries {
-            hasher.update(&entry.key);
-            hasher.update(&entry.value);
-
             let encrypted_entry = entry.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
             entries.push(encrypted_entry);
         }
 
-        for blob in &self.blobs {
-            hasher.update(&blob.binary);
-            hasher.update(&blob.name);
-
-            let encrypted_blob = blob.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
-            blobs.push(encrypted_blob);
+        for file in &self.files {
+            let encrypted_file = file.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
+            files.push(encrypted_file);
         }
 
-        let mut sender_hasher = blake2::Blake2s256::new();
-        sender_hasher.update(&self.sender.public);
-        sender_hasher.update(&self.otu.nonce.secret);
-
-
-        Ok(EncryptedMessage {
-            nonce: base64::encode(self.otu.nonce.public),
-            broker: base64::encode(self.otu.broker.public),
-            sender: base64::encode(sender_hasher.finalize().to_vec()),
-            parties,
+        EncryptedMessage {
+            parties: parties_hash,
             entries,
-            blobs,
-            hash: base64::encode(hasher.finalize().to_vec()),
-        })
+            files,
+        }
     }
 
-    fn other_pks(&self, pk: &PublicKey) -> Vec<PublicKey> {
-        let mut pks: Vec<PublicKey> = Vec::new();
-        pks.push(self.sender.public);
-        for pk in &self.recipients {
-            pks.push(pk.to_owned());
-        }
-        pks.iter().filter(|&el| el.ne(pk)).map(|pk| *pk).collect()
-    }
+    // fn other_pks(&self, pk: &PublicKey) -> Vec<PublicKey> {
+    //     let mut pks: Vec<PublicKey> = Vec::new();
+    //     pks.push(self.sender.public);
+    //     for pk in &self.recipients {
+    //         pks.push(pk.to_owned());
+    //     }
+    //     pks.iter().filter(|&el| el.ne(pk)).map(|pk| *pk).collect()
+    // }
 }

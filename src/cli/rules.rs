@@ -73,24 +73,39 @@ impl Rules {
                         FlagKey::Wallet,
                     ],
                 },
-            Command::SendMessage =>
+            Command::ComposeMessgae =>
                 Rules {
                     valid_keys: vec![
-                        FlagKey::Wallet,
+                        // FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                         FlagKey::Key,
                         FlagKey::Value,
-                        FlagKey::Blob,
+                        FlagKey::File,
                     ],
                     required_keys: vec![
-                        FlagKey::Wallet,
+                        // FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                     ],
                     unique_keys: vec![
-                        FlagKey::Wallet,
+                        // FlagKey::Wallet,
                         FlagKey::Sender,
+                    ],
+                },
+            Command::SendMessage =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::Wallet,
+                        FlagKey::IpfsId,
+                    ],
+                    required_keys: vec![
+                        FlagKey::Wallet,
+                        FlagKey::IpfsId,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::Wallet,
+                        FlagKey::IpfsId,
                     ],
                 },
             Command::GetMessages =>

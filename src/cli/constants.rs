@@ -4,6 +4,7 @@ pub mod commands {
     pub const ADD_WALLET: (&str, &str) = ("add", "wallet");
     pub const ADD_ACCOUNT: (&str, &str) = ("add", "account");
     pub const ADD_OWNER: (&str, &str) = ("add", "owner");
+    pub const COMPOSE_MESSAGE: (&str, &str) = ("compose", "message");
     pub const SEND_MESSAGE: (&str, &str) = ("send", "message");
     pub const GET_MESSAGES: (&str, &str) = ("get", "messages");
     pub const GET_COINS: (&str, &str) = ("get", "coins");
@@ -27,8 +28,8 @@ pub mod flags {
     pub const KEY: &str = "--key";
     pub const V: &str = "-v";
     pub const VALUE: &str = "--value";
-    pub const B: &str = "-b";
-    pub const BLOB: &str = "--blob";
+    pub const F: &str = "-f";
+    pub const FILE: &str = "--file";
     pub const W: &str = "-w";
     pub const WALLET: &str = "--wallet";
     pub const ADD: &str = "--add";

@@ -14,7 +14,7 @@ mod account {
         let arr = [
             "add",
             "account",
-            "--name",
+            "--alias",
             "alice",
         ].map(|el| el.to_string());
 
@@ -32,7 +32,7 @@ mod account {
 
         let new_account_len= toml_data.accounts
             .iter()
-            .filter(|account| account.name == "alice".to_string())
+            .filter(|account| account.alias == "alice".to_string())
             .count();
 
         fs::remove_file(config_file.path).unwrap();
@@ -48,7 +48,7 @@ mod account {
         let arr = [
             "add",
             "account",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
@@ -85,7 +85,7 @@ mod account {
         let arr = [
             "add",
             "account",
-            "--name",
+            "--alias",
             "alice",
         ].map(|el| el.to_string());
 
@@ -101,7 +101,7 @@ mod account {
         let arr = [
             "add",
             "account",
-            "--name",
+            "--alias",
             "alice",
         ].map(|el| el.to_string());
 
@@ -126,7 +126,7 @@ mod account {
         let arr = [
             "add",
             "account",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
@@ -144,7 +144,7 @@ mod account {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "bob",
             "--import",
             "EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
@@ -171,7 +171,7 @@ mod account {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "#EJ4kZ655xhqRjjYwmf6cgz5k5ZgY2c5uz4Z2kqG7Z1Xs",
@@ -195,7 +195,7 @@ mod account {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
         ].map(|el| el.to_string());
 

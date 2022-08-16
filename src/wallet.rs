@@ -11,7 +11,7 @@ use clearscreen;
 #[derive(Debug)]
 pub struct WalletInput {
     alias: String,
-    phrase: Option<String>,
+    bs58seed: Option<String>,
     password: Option<String>,
 }
 
@@ -23,7 +23,7 @@ impl WalletInput {
             Err(e) => return Err(e),
         };
 
-        let phrase: Option<String> = match input.get_flag_value(FlagKey::Import) {
+        let bs58seed: Option<String> = match input.get_flag_value(FlagKey::Import) {
             Ok(bs58seed) => Some(bs58seed),
             Err(e) => {
                 match e {
@@ -33,44 +33,19 @@ impl WalletInput {
             }
         };
 
-        // let with_password: Option<bool> = match input.get_flag_value(FlagKey::WithPassword) {
-        //     Ok(value) => {
-        //         match value.as_str() {
-        //             "no" => None,
-        //             _ => Some(true),
-        //         }
-        //     },
-        //     Err(e) => {
-        //         match e {
-        //             InputError::NoSuchKey => Some(true),
-        //             _ => return Err(e),
-        //         }
-        //     }
-        // };
-
-        // let password = match with_password {
-        //     Some(_value) =>
-        //         match Wallet::password_input() {
-        //             Ok(password) => Some(password),
-        //             Err(e) => return Err(e),
-        //         },
-        //     None => None
-        // };
-
         Ok(WalletInput {
             alias,
-            phrase,
+            bs58seed,
             password
         })
     }
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Wallet {
     pub alias: String,
     pub public: Public,
-    pub pair: sr25519::Pair,
     pub seed: String,
     pub bs58seed: String,
     pub password: Option<String>,
@@ -79,8 +54,18 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn new(input: WalletInput) -> Result<Wallet, ConfigError> {
-        let wallet = match input.phrase {
-            Some(phrase) => {
+        let wallet = match input.bs58seed {
+            Some(bs58seed) => {
+                let phrase_vec = match bs58::decode(&bs58seed).into_vec() {
+                    Ok(res) => res,
+                    Err(_e) => return Err(ConfigError::CouldNotParseSeed),
+                };
+
+                let phrase = match String::from_utf8(phrase_vec) {
+                    Ok(res) => res,
+                    Err(_e) => return Err(ConfigError::CouldNotParseSeed),
+                };
+
                 match sr25519::Pair::from_phrase(&phrase, input.password.as_deref()) {
                     Ok(res) => (res.0, phrase, res.1),
                     Err(e) => {
@@ -95,11 +80,22 @@ impl Wallet {
         Ok(Wallet {
             public: wallet.0.public(),
             bs58seed: bs58::encode(&wallet.1).into_string(),
-            pair: wallet.0,
             seed: wallet.1,
             alias: input.alias,
             password: input.password,
         })
+    }
+
+
+    pub fn get_pair(&self) -> Result<sr25519::Pair, ConfigError> {
+        let pair = match sr25519::Pair::from_phrase(&self.bs58seed, self.password.as_deref()) {
+            Ok(res) => res.0,
+            Err(e) => {
+                eprintln!("Error: {:?}", e);
+                return Err(ConfigError::CouldNotParseSeed)
+            },
+        };
+        Ok(pair)
     }
 
 
@@ -152,7 +148,7 @@ impl Wallet {
 
         let wallet_input = WalletInput {
             alias: wallet_output.alias,
-            phrase: Some(wallet_output.seed),
+            bs58seed: Some(wallet_output.seed),
             password
         };
 

@@ -1,5 +1,4 @@
 use sodiumoxide::crypto::box_::PublicKey;
-use sp_core::Pair;
 use crate::{Account, ConfigFile, FlagKey, Input, NodeEvent, Wallet};
 use crate::cli::errors::InputError;
 use crate::node::events::AddToWhitelist;
@@ -67,12 +66,9 @@ impl Whitelist {
     }
 
     pub async fn update(&self) -> Result<(), InputError> {
-        let (pair, _seed) = match sp_core::sr25519::Pair::from_phrase(&self.wallet.seed, self.wallet.password.as_deref()) {
-            Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(InputError::CouldNotUpdateWhitelist);
-            }
+        let pair = match self.wallet.get_pair() {
+            Ok(pair) => pair,
+            Err(_e) => return Err(InputError::CouldNotAddOwner),
         };
 
         let extrinsic_hash = match add_to_whitelist(&pair, &self.account.public, &self.new_address).await {

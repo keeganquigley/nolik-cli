@@ -1,13 +1,12 @@
 use crate::{Account, ConfigFile, FlagKey, Input, Wallet};
 use crate::cli::errors::InputError;
-use sp_core::Pair;
 use crate::node::extrinsics::add_owner;
 use crate::node::events::{AddOwnerEvent, NodeEvent};
 use colored::Colorize;
 
 pub struct Owner {
-    wallet: Wallet,
-    account: Account,
+    pub wallet: Wallet,
+    pub account: Account,
 }
 
 
@@ -47,12 +46,9 @@ impl Owner {
 
 
     pub async fn add(&self) -> Result<(), InputError> {
-        let (pair, _seed) = match sp_core::sr25519::Pair::from_phrase(&self.wallet.seed, self.wallet.password.as_deref()) {
-            Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(InputError::CouldNotAddOwner);
-            }
+        let pair = match self.wallet.get_pair() {
+            Ok(pair) => pair,
+            Err(_e) => return Err(InputError::CouldNotAddOwner),
         };
 
         let extrinsic_hash = match add_owner(&pair, &self.account.public).await {

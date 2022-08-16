@@ -3,32 +3,31 @@ use futures_util::TryStreamExt;
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use async_recursion::async_recursion;
 use crate::message::errors::MessageError;
-use crate::message::message::{EncryptedMessage};
 use sodiumoxide::crypto::box_::PublicKey;
 use sp_core::crypto::AccountId32;
 use sp_core::Pair;
-use crate::cli::input::FlagKey;
-use crate::{Input, Wallet};
-use crate::cli::errors::{InputError};
+// use crate::cli::input::FlagKey;
+use crate::{Batch, Wallet};
+// use crate::cli::errors::{InputError};
 use crate::node::calls::call_extrinsic;
 use crate::node::extrinsics::send_message;
 
 
-pub struct IpfsInput {}
-
-
-impl IpfsInput {
-    pub fn new(input: &Input) -> Result<IpfsFile, InputError> {
-        let ipfs_id = match input.get_flag_value(FlagKey::IpfsId) {
-            Ok(name) => name,
-            Err(e) => return Err(e)
-        };
-
-        Ok(IpfsFile {
-            ipfs_id,
-        })
-    }
-}
+// pub struct IpfsInput {}
+//
+//
+// impl IpfsInput {
+//     pub fn new(input: &Input) -> Result<IpfsFile, InputError> {
+//         let ipfs_id = match input.get_flag_value(FlagKey::IpfsId) {
+//             Ok(name) => name,
+//             Err(e) => return Err(e)
+//         };
+//
+//         Ok(IpfsFile {
+//             ipfs_id,
+//         })
+//     }
+// }
 
 
 pub struct IpfsFile {
@@ -45,7 +44,7 @@ impl IpfsFile {
 
 
     #[async_recursion(?Send)]
-    pub async fn get(&self) -> Result<EncryptedMessage, MessageError> {
+    pub async fn get(&self) -> Result<Batch, MessageError> {
         let client = IpfsClient::default();
         let data = match client.cat(&self.ipfs_id).map_ok(|chunk| chunk.to_vec()).try_concat().await {
             Ok(res) => {
@@ -65,14 +64,24 @@ impl IpfsFile {
             }
         };
 
-        let encrypted_message: EncryptedMessage = match toml::from_str(data.as_str()) {
+        let batch: Batch = match toml::from_str(data.as_str()) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error on parsing IPFS data: {:?}", e);
-                return Err(MessageError::CouldNotReadIpfsData)
+                return Err(MessageError::CouldNotReadIpfsData);
             }
         };
-        Ok(encrypted_message)
+
+        Ok(batch)
+
+        // let encrypted_message: EncryptedMessage = match toml::from_str(data.as_str()) {
+        //     Ok(res) => res,
+        //     Err(e) => {
+        //         eprintln!("Error on parsing IPFS data: {:?}", e);
+        //         return Err(MessageError::CouldNotReadIpfsData)
+        //     }
+        // };
+        // Ok(encrypted_message)
     }
 
 

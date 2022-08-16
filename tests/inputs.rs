@@ -36,7 +36,7 @@ mod inputs {
 
     #[test]
     fn no_corresponding_value() {
-        let arr = ["add", "wallet", "--name"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--alias"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
             InputError::NoValueForFlag,
@@ -56,7 +56,7 @@ mod inputs {
 
     #[test]
     fn invalid_flags() {
-        let arr = ["add", "wallet", "--name", "alice", "--sender", "value"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--alias", "alice", "--sender", "value"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
             InputError::InvalidFlag,
@@ -66,7 +66,7 @@ mod inputs {
 
     #[test]
     fn non_unique_key() {
-        let arr = ["add", "wallet", "--name", "alice", "--name", "alice"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--alias", "alice", "--alias", "alice"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
             InputError::NonUniqueKeys,
@@ -76,7 +76,7 @@ mod inputs {
 
     #[test]
     fn non_unique_key_short_flags() {
-        let arr = ["add", "wallet", "-n", "alice", "-n", "alice"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--alias", "alice", "--alias", "alice"].map(|el| el.to_string());
         let args = arr.iter();
         assert_eq!(
             InputError::NonUniqueKeys,
@@ -88,7 +88,7 @@ mod inputs {
     fn returns_flag_value() {
         let mut flags: Flags = Vec::new();
         let flag = Flag {
-            key: FlagKey::Name,
+            key: FlagKey::Alias,
             value: "alice".to_string(),
         };
 
@@ -101,7 +101,7 @@ mod inputs {
 
         assert_eq!(
             vec![String::from("alice")],
-            input.get_flag_values(FlagKey::Name).unwrap(),
+            input.get_flag_values(FlagKey::Alias).unwrap(),
         );
     }
 }

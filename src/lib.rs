@@ -23,6 +23,7 @@ use crate::node::errors::NodeError;
 use crate::node::socket::Socket;
 use sp_core::crypto::AccountId32;
 use sp_keyring::AccountKeyring;
+use crate::message::batch::Batch;
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
 use crate::node::extrinsics::balance_transfer;
 use crate::whitelist::Whitelist;
@@ -107,7 +108,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }
         },
-        Command::SendMessage => {
+        Command::ComposeMessgae => {
             let config_file: ConfigFile = ConfigFile::new();
 
             let mi = match MessageInput::new(&mut input, &config_file) {
@@ -115,8 +116,49 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
+
+            // let em= match mi.encrypt(&pk) {
+            //     Ok(em) => em,
+            //     Err(e) => return Err(Box::<dyn Error>::from(e)),
+            // };
+
+            let _batch = match Batch::new(&mi) {
+                Ok(batch) => batch,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            // for pk in &mi.recipients {
+                // let em= match mi.encrypt(&pk) {
+                //     Ok(em) => em,
+                //     Err(e) => return Err(Box::<dyn Error>::from(e)),
+                // };
+
+                // let ipfs_file = match em.save().await {
+                //     Ok(ipfs_file) => ipfs_file,
+                //     Err(e) => return Err(Box::<dyn Error>::from(e)),
+                // };
+                //
+                // match ipfs_file.send(&wallet, &mi.sender.public, &pk).await {
+                //     Ok(_res) => {}
+                //     Err(e) => return Err(Box::<dyn Error>::from(e)),
+                // }
+            // }
+        },
+        Command::SendMessage => {
+            let config_file: ConfigFile = ConfigFile::new();
+
+            // let mi = match MessageInput::new(&mut input, &config_file) {
+            //     Ok(input) => input,
+            //     Err(e) => return Err(Box::<dyn Error>::from(e)),
+            // };
+
             let wallet_alias = match input.get_flag_value(FlagKey::Wallet) {
                 Ok(name) => name,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let _ipfs_id = match input.get_flag_value(FlagKey::IpfsId) {
+                Ok(id) => id,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
@@ -125,29 +167,34 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            let wallet = match Wallet::get(&config_file, wallet_alias, password) {
+            let _wallet = match Wallet::get(&config_file, wallet_alias, password) {
                 Ok(wallet) => wallet,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            for pk in &mi.recipients {
-                let em= match mi.encrypt(&pk) {
-                    Ok(em) => em,
-                    Err(e) => return Err(Box::<dyn Error>::from(e)),
-                };
-
-                let ipfs_file = match em.save().await {
-                    Ok(ipfs_file) => ipfs_file,
-                    Err(e) => return Err(Box::<dyn Error>::from(e)),
-                };
-
-                match ipfs_file.send(&wallet, &mi.sender.public, &pk).await {
-                    Ok(_res) => {}
-                    Err(e) => return Err(Box::<dyn Error>::from(e)),
-                }
-            }
+            // for pk in &mi.recipients {
+            //     let em= match mi.encrypt(&pk) {
+            //         Ok(em) => em,
+            //         Err(e) => return Err(Box::<dyn Error>::from(e)),
+            //     };
+            //
+            //     let ipfs_file = match em.save().await {
+            //         Ok(ipfs_file) => ipfs_file,
+            //         Err(e) => return Err(Box::<dyn Error>::from(e)),
+            //     };
+            //
+            //     match ipfs_file.send(&wallet, &mi.sender.public, &pk).await {
+            //         Ok(_res) => {}
+            //         Err(e) => return Err(Box::<dyn Error>::from(e)),
+            //     }
+            // }
         },
         Command::GetMessages => {
+
+            let bs58seed = "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT";
+            let phrase_vec = bs58::decode(&bs58seed).into_vec().unwrap();
+            let phrase = String::from_utf8(phrase_vec).unwrap();
+            println!("PHRASE {phrase}");
         },
         Command::GetCoins => {
             let config_file: ConfigFile = ConfigFile::new();

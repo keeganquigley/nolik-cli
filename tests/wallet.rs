@@ -13,16 +13,14 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
+        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
@@ -33,7 +31,7 @@ mod wallet {
 
         let new_wallet_len = toml_data.wallets
             .iter()
-            .filter(|wallet| wallet.name == "alice".to_string())
+            .filter(|wallet| wallet.alias == "alice".to_string())
             .count();
 
         fs::remove_file(config_file.path).unwrap();
@@ -49,18 +47,16 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
+        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
@@ -88,16 +84,14 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a).unwrap();
+        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
@@ -106,16 +100,14 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b).unwrap();
+        let wallet_input = WalletInput::new(input_b, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let should_err = Wallet::add(config_file.clone(), wallet).unwrap_err();
@@ -133,18 +125,16 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a).unwrap();
+        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
@@ -153,18 +143,16 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "bob",
             "--import",
             "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b).unwrap();
+        let wallet_input = WalletInput::new(input_b, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let should_err = Wallet::add(config_file.clone(), wallet).unwrap_err();
@@ -182,18 +170,16 @@ mod wallet {
         let arr = [
             "add",
             "wallet",
-            "--name",
+            "--alias",
             "alice",
             "--import",
             "#ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT",
-            // "--with-password",
-            // "no"
         ].map(|el| el.to_string());
 
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
+        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap_err();
 
         assert_eq!(
@@ -205,11 +191,11 @@ mod wallet {
 
     #[test]
     fn broken_config_file() {
-        let arr = ["add", "wallet", "--name", "alice", "--with-password", "no"].map(|el| el.to_string());
+        let arr = ["add", "wallet", "--alias", "alice"].map(|el| el.to_string());
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input).unwrap();
+        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
