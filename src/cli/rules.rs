@@ -73,7 +73,25 @@ impl Rules {
                         FlagKey::Wallet,
                     ],
                 },
-            Command::ComposeMessgae =>
+            Command::UpdateBlacklist =>
+                Rules {
+                    valid_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                    required_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                    unique_keys: vec![
+                        FlagKey::For,
+                        FlagKey::Add,
+                        FlagKey::Wallet,
+                    ],
+                },
+            Command::ComposeMessage =>
                 Rules {
                     valid_keys: vec![
                         // FlagKey::Wallet,

@@ -8,6 +8,7 @@ pub mod message;
 pub mod send;
 pub mod owner;
 pub mod whitelist;
+pub mod blacklist;
 
 use std::error::Error;
 use colored::Colorize;
@@ -24,6 +25,7 @@ use crate::node::errors::NodeError;
 use crate::node::socket::Socket;
 use sp_core::crypto::AccountId32;
 use sp_keyring::AccountKeyring;
+use crate::blacklist::Blacklist;
 use crate::message::batch::Batch;
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
 use crate::node::extrinsics::balance_transfer;
@@ -109,7 +111,25 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }
         },
-        Command::ComposeMessgae => {
+        Command::UpdateBlacklist => {
+            let config_file: ConfigFile = ConfigFile::new();
+
+            let password = match Wallet::password_input_once() {
+                Ok(password) => Some(password),
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let blacklist = match Blacklist::new(&input, &config_file, password) {
+                Ok(whitelist) => whitelist,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            match blacklist.update().await {
+                Ok(_res) => {},
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            }
+        },
+        Command::ComposeMessage => {
             let config_file: ConfigFile = ConfigFile::new();
 
             let bi = match BatchInput::new(&mut input, &config_file) {

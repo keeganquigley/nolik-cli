@@ -41,4 +41,5 @@ pub mod pallet_errors {
     pub const ERROR_ADDRESS_NOT_OWNED: &str = "AddressNotOwned";
     pub const ERROR_SAME_ADDRESS: &str = "SameAddress";
     pub const ERROR_ALREADY_IN_WHITELIST: &str = "AlreadyInWhiteList";
+    pub const ERROR_ALREADY_IN_BLACKLIST: &str = "AlreadyInBlackList";
 }

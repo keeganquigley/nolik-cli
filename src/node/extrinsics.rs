@@ -46,6 +46,16 @@ impl Call for NolikAddToWhitelist {
 }
 
 
+pub struct NolikAddToBlacklist;
+
+impl Encode for NolikAddToBlacklist {}
+
+impl Call for NolikAddToBlacklist {
+    const PALLET: &'static str = "Nolik";
+    const FUNCTION: &'static str = "add_to_blacklist";
+}
+
+
 pub async fn call_indexes<T: Call>() -> Result<(u8, u8), NodeError> {
 
     let api = ClientBuilder::new()
@@ -251,19 +261,31 @@ pub async fn add_to_whitelist(
 }
 
 
-pub async fn add_to_blacklist(identity: AccountKeyring, add_to: Vec<u8>, new_address: Vec<u8>) -> Result<String, NodeError> {
-    let owner = identity.to_account_id();
+pub async fn add_to_blacklist(
+    pair: &sp_core::sr25519::Pair,
+    add_to: &PublicKey,
+    new_address: &PublicKey) -> Result<String, NodeError> {
+
+    let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
+    let add_to = bs58::encode(&add_to).into_string();
+    let new_address = bs58::encode(&new_address).into_string();
+
     let (nonce, genesis_hash, runtime_version) = match get_meta(&owner).await {
         Ok(res) => res,
         Err(e) => return Err(e),
     };
 
-    let pallet_index: u8 = 8;
-    let method_index: u8 = 2;
-    let call_index: [u8; 2] = [pallet_index, method_index];
+    let (pallet_index, call_index) = match call_indexes::<NolikAddToBlacklist>().await {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
 
-    let call: Vec<u8>  = [call_index.to_vec(), add_to.encode().clone(), new_address.encode().clone()].concat();
-
+    let indexes: [u8; 2] = [pallet_index, call_index];
+    let call: Vec<u8>  = [
+        indexes.to_vec(),
+        add_to.encode().clone(),
+        new_address.encode().clone()
+    ].concat();
 
     let extra = (
         Era::Immortal,
@@ -280,7 +302,7 @@ pub async fn add_to_blacklist(identity: AccountKeyring, add_to: Vec<u8>, new_add
 
     let call_tup = (
         pallet_index,
-        method_index,
+        call_index,
         add_to,
         new_address,
     );
@@ -291,7 +313,7 @@ pub async fn add_to_blacklist(identity: AccountKeyring, add_to: Vec<u8>, new_add
         &additional
     );
 
-    let signature = payload.using_encoded(|payload| identity.sign(&payload));
+    let signature = payload.using_encoded(|payload| pair.sign(&payload));
     let extrinsic = encode_extrinsic(owner, signature, extra, call);
     let extrinsic_hash = format!("0x{}", hex::encode(extrinsic));
     Ok(extrinsic_hash)

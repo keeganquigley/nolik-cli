@@ -20,6 +20,7 @@ pub enum InputError {
     CouldNotReadFileBinary,
     CouldNotAddOwner,
     CouldNotUpdateWhitelist,
+    CouldNotUpdateBlacklist,
 }
 
 
@@ -43,6 +44,7 @@ impl Display for InputError {
             InputError::CouldNotReadFileBinary => f.write_str("Could not read file binary"),
             InputError::CouldNotAddOwner => f.write_str("Could not add owner"),
             InputError::CouldNotUpdateWhitelist => f.write_str("Could not update Whitelist"),
+            InputError::CouldNotUpdateBlacklist => f.write_str("Could not update Blacklist"),
         }
     }
 }
