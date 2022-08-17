@@ -1,4 +1,4 @@
-use crate::{Account, ConfigFile, FlagKey, Input, Wallet};
+use crate::{Account, ConfigFile, FlagKey, Input, NodeError, Wallet};
 use crate::cli::errors::InputError;
 use crate::node::extrinsics::add_owner;
 use crate::node::events::{AddOwnerEvent, NodeEvent};
@@ -45,17 +45,20 @@ impl Owner {
     }
 
 
-    pub async fn add(&self) -> Result<(), InputError> {
+    pub async fn add(&self) -> Result<(), NodeError> {
         let pair = match self.wallet.get_pair() {
             Ok(pair) => pair,
-            Err(_e) => return Err(InputError::CouldNotAddOwner),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(NodeError::CouldNotSubmitEvent);
+            }
         };
 
         let extrinsic_hash = match add_owner(&pair, &self.account.public).await {
             Ok(hash) => hash,
             Err(e) => {
                 eprintln!("Error: {}", e);
-                return Err(InputError::CouldNotAddOwner);
+                return Err(e);
             }
         };
 
@@ -66,7 +69,7 @@ impl Owner {
                 println!("{}", res.bright_green());
                 Ok(())
             },
-            Err(_e) => return Err(InputError::CouldNotAddOwner),
+            Err(e) => return Err(e),
         }
     }
 }

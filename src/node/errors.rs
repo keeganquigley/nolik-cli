@@ -10,6 +10,12 @@ pub enum NodeError {
     CouldNotGetMetadata,
     CouldNotSubmitEvent,
     CouldNotGetCallIndex,
+
+    PalletAddressNotOwned,
+    PalletAccountInOwners,
+    PalletSameAddress,
+    PalletAlreadyInWhiteList,
+    PalletUnknownError,
 }
 
 
@@ -22,7 +28,12 @@ impl Display for NodeError {
             NodeError::CouldNotCallExtrinsic => f.write_str("Could not call extrinsic"),
             NodeError::CouldNotGetMetadata => f.write_str("Could not get node metadata"),
             NodeError::CouldNotSubmitEvent => f.write_str("Could not submit event"),
-            NodeError::CouldNotGetCallIndex => f.write_str("Could not get call index")
+            NodeError::CouldNotGetCallIndex => f.write_str("Could not get call index"),
+            NodeError::PalletAccountInOwners => f.write_str("Account is already owned by this wallet"),
+            NodeError::PalletAddressNotOwned => f.write_str("Account is not owned by this wallet"),
+            NodeError::PalletSameAddress => f.write_str("Trying to add your own address"),
+            NodeError::PalletAlreadyInWhiteList => f.write_str("Address is already in Whitelist"),
+            NodeError::PalletUnknownError => f.write_str("Unknown error"),
         }
     }
 }
@@ -30,25 +41,25 @@ impl Display for NodeError {
 impl StdError for NodeError {}
 
 
-#[derive(PartialEq, Debug)]
-pub enum PalletError {
-    AddressNotOwned,
-    AccountInOwners,
-    SameAddress,
-    AlreadyInWhiteList,
-    UnknownError,
-}
-
-impl Display for PalletError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PalletError::AccountInOwners => f.write_str("Account is already owned by this wallet"),
-            PalletError::AddressNotOwned => f.write_str("Account is not owned by this wallet"),
-            PalletError::SameAddress => f.write_str("Trying to add your own address"),
-            PalletError::AlreadyInWhiteList => f.write_str("Address is already in Whitelist"),
-            PalletError::UnknownError => f.write_str("Unknown error"),
-        }
-    }
-}
-
-impl StdError for PalletError {}
+// #[derive(PartialEq, Debug)]
+// pub enum PalletError {
+//     AddressNotOwned,
+//     AccountInOwners,
+//     SameAddress,
+//     AlreadyInWhiteList,
+//     UnknownError,
+// }
+//
+// impl Display for PalletError {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             PalletError::AccountInOwners => f.write_str("Account is already owned by this wallet"),
+//             PalletError::AddressNotOwned => f.write_str("Account is not owned by this wallet"),
+//             PalletError::SameAddress => f.write_str("Trying to add your own address"),
+//             PalletError::AlreadyInWhiteList => f.write_str("Address is already in Whitelist"),
+//             PalletError::UnknownError => f.write_str("Unknown error"),
+//         }
+//     }
+// }
+//
+// impl StdError for PalletError {}

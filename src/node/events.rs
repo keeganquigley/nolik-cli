@@ -5,7 +5,6 @@ use subxt::Phase::ApplyExtrinsic;
 use parity_scale_codec::Decode;
 use crate::cli::constants::pallet_errors;
 use crate::node::calls::{call_extrinsic, get_block};
-use crate::node::errors::PalletError;
 use crate::NodeError;
 use async_trait::async_trait;
 use futures::StreamExt;
@@ -95,15 +94,14 @@ pub trait NodeEvent {
                             };
 
                             let pallet_error = match error_metadata.error() {
-                                pallet_errors::ERROR_ACCOUNT_IN_OWNERS => PalletError::AccountInOwners,
-                                pallet_errors::ERROR_ADDRESS_NOT_OWNED => PalletError::AddressNotOwned,
-                                pallet_errors::ERROR_ALREADY_IN_WHITELIST => PalletError::AlreadyInWhiteList,
-                                pallet_errors::ERROR_SAME_ADDRESS => PalletError::SameAddress,
-                                _ => PalletError::UnknownError,
+                                pallet_errors::ERROR_ACCOUNT_IN_OWNERS => NodeError::PalletAccountInOwners,
+                                pallet_errors::ERROR_ADDRESS_NOT_OWNED => NodeError::PalletAddressNotOwned,
+                                pallet_errors::ERROR_ALREADY_IN_WHITELIST => NodeError::PalletAlreadyInWhiteList,
+                                pallet_errors::ERROR_SAME_ADDRESS => NodeError::PalletSameAddress,
+                                _ => NodeError::PalletUnknownError,
                             };
 
-                            println!("Error: {}", pallet_error);
-                            return Err(NodeError::CouldNotSubmitEvent);
+                            return Err(pallet_error);
                         }
                     }
                 }

@@ -286,7 +286,6 @@ mod message {
     async fn message_decrypted_by_sender() {
         let (_recipient, bi) = generate_message_input().await;
 
-
         let secret_nonce = box_::gen_nonce();
         let batch = Batch::new(&bi, &secret_nonce).unwrap();
         let ipfs_file = batch.save().await.unwrap();
@@ -404,19 +403,20 @@ mod message {
         }
     }
 
-    // #[async_std::test]
-    // async fn confirmed_batch_hash() {
-    //     let (.., mi) = generate_message_input().await;
-    //
-    //     let batch = Batch::new(&mi).unwrap();
-    //     let ipfs_file = batch.save().await.unwrap();
-    //
-    //     let ipfs_data = ipfs_file.get().await.unwrap();
-    //
-    //     let batch_hash = Batch::get_batch_hash(&mi);
-    //     assert_eq!(
-    //         batch_hash,
-    //         ipfs_data.hash,
-    //     )
-    // }
+    #[async_std::test]
+    async fn confirmed_batch_hash() {
+        let (.., bi) = generate_message_input().await;
+
+        let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+        let ipfs_data = ipfs_file.get().await.unwrap();
+
+        let batch_hash = Batch::get_batch_hash(&bi, &secret_nonce);
+        assert_eq!(
+            batch_hash,
+            ipfs_data.hash,
+        )
+    }
 }

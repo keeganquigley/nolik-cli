@@ -194,10 +194,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
         },
         Command::GetMessages => {
 
-            let bs58seed = "4ecF8kHC5xfAf6FLNKkc1KnQk6KAXwub1HbpZE7Xe6nhhneHzNb8rDxCSk3r8zC1VHjE5b8EcGDtN9WXxxEJyuWh4XN5r8oxpgjQiUu7hTT";
-            let phrase_vec = bs58::decode(&bs58seed).into_vec().unwrap();
-            let phrase = String::from_utf8(phrase_vec).unwrap();
-            println!("PHRASE {phrase}");
+
         },
         Command::GetCoins => {
             let config_file: ConfigFile = ConfigFile::new();
