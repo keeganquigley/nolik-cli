@@ -1,85 +1,27 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
-use blake2::Digest;
-use blake2::digest::Update;
-use sodiumoxide::crypto::box_;
-use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
+use sodiumoxide::crypto::box_::PublicKey;
 use crate::{Account, ConfigFile, Input};
 use crate::cli::errors::InputError;
 use crate::cli::input::FlagKey;
-use crate::message::file::{File, EncryptedFile};
-use crate::message::entry::{Entry, EncryptedEntry};
-// use crate::message::errors::MessageError;
-use crate::message::message::EncryptedMessage;
+use crate::message::file::File;
+use crate::message::entry::Entry;
 use crate::message::utils::base58_to_public_key;
-// use crate::message::nonce::Nonce;
-// use crate::message::parties::Parties;
 
-#[derive(Debug)]
-pub struct OneTimeUseNonce {
-    pub public: box_::Nonce,
-    pub secret: box_::Nonce,
-}
-
-
-impl OneTimeUseNonce {
-    fn new() -> OneTimeUseNonce {
-        OneTimeUseNonce {
-            public: box_::gen_nonce(),
-            secret: box_::gen_nonce(),
-        }
-    }
-}
 
 
 #[derive(Debug)]
-pub struct OneTimeUseBroker {
-    pub public: PublicKey,
-    pub secret: SecretKey,
-}
-
-
-impl OneTimeUseBroker {
-    fn new() -> OneTimeUseBroker {
-        let broker = box_::gen_keypair();
-        OneTimeUseBroker {
-            public: broker.0,
-            secret: broker.1,
-        }
-    }
-}
-
-
-#[derive(Debug)]
-pub struct OneTimeUse {
-    pub nonce: OneTimeUseNonce,
-    pub broker: OneTimeUseBroker,
-}
-
-
-impl OneTimeUse {
-    fn new() -> OneTimeUse {
-        OneTimeUse {
-            nonce: OneTimeUseNonce::new(),
-            broker: OneTimeUseBroker::new(),
-        }
-    }
-}
-
-
-#[derive(Debug)]
-pub struct MessageInput {
+pub struct BatchInput {
     pub sender: Account,
     pub recipients: Vec<PublicKey>,
     pub entries: Vec<Entry>,
     pub files: Vec<File>,
-    pub otu: OneTimeUse,
 }
 
 
-impl MessageInput {
-    pub fn new(input: &mut Input, config_file: &ConfigFile) -> Result<MessageInput, InputError> {
+impl BatchInput {
+    pub fn new(input: &mut Input, config_file: &ConfigFile) -> Result<BatchInput, InputError> {
         let sender_key = match input.get_flag_value(FlagKey::Sender) {
             Ok(key) => key,
             Err(e) => return Err(e)
@@ -153,58 +95,50 @@ impl MessageInput {
             files.push(file);
         }
 
-        Ok(MessageInput {
+        Ok(BatchInput {
             sender,
             recipients,
             entries,
             files,
-            otu: OneTimeUse::new(),
         })
     }
 
-    pub fn encrypt(&self, pk: &PublicKey) -> EncryptedMessage {
-        // let nonce: Nonce = Nonce::new(self.otu.nonce.secret);
-        // let encrypted_nonce = nonce.encrypt(&self.otu.nonce.public, &pk, &self.sender.secret);
-        //
-        // let mut parties: Parties = Parties::new();
-        // parties.add(&self.sender.public);
-        // for recipient in &self.recipients {
-        //     parties.add(recipient);
-        // }
-        //
-        // let encrypted_parties = parties.encrypt(&self.otu.nonce.secret, pk, &self.sender.secret);
-        let mut parties = blake2::Blake2s256::new();
-        Update::update(&mut parties, &self.sender.public.as_ref());
-        Update::update(&mut parties, &pk.as_ref());
-        let parties_hash = base64::encode(parties.finalize().to_vec());
-
-
-        let mut entries: Vec<EncryptedEntry> = Vec::new();
-        let mut files: Vec<EncryptedFile> = Vec::new();
-
-        for entry in &self.entries {
-            let encrypted_entry = entry.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
-            entries.push(encrypted_entry);
-        }
-
-        for file in &self.files {
-            let encrypted_file = file.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
-            files.push(encrypted_file);
-        }
-
-        EncryptedMessage {
-            parties: parties_hash,
-            entries,
-            files,
-        }
-    }
-
-    // fn other_pks(&self, pk: &PublicKey) -> Vec<PublicKey> {
-    //     let mut pks: Vec<PublicKey> = Vec::new();
-    //     pks.push(self.sender.public);
-    //     for pk in &self.recipients {
-    //         pks.push(pk.to_owned());
+    // pub fn encrypt(&self, pk: &PublicKey) -> EncryptedMessage {
+    //     // let nonce: Nonce = Nonce::new(self.otu.nonce.secret);
+    //     // let encrypted_nonce = nonce.encrypt(&self.otu.nonce.public, &pk, &self.sender.secret);
+    //     //
+    //     // let mut parties: Parties = Parties::new();
+    //     // parties.add(&self.sender.public);
+    //     // for recipient in &self.recipients {
+    //     //     parties.add(recipient);
+    //     // }
+    //     //
+    //     // let encrypted_parties = parties.encrypt(&self.otu.nonce.secret, pk, &self.sender.secret);
+    //     let mut parties = blake2::Blake2s256::new();
+    //     Update::update(&mut parties, &self.sender.public.as_ref());
+    //     Update::update(&mut parties, &pk.as_ref());
+    //     let parties_hash = base64::encode(parties.finalize().to_vec());
+    //
+    //
+    //     let mut entries: Vec<EncryptedEntry> = Vec::new();
+    //     let mut files: Vec<EncryptedFile> = Vec::new();
+    //
+    //     for entry in &self.entries {
+    //         let encrypted_entry = entry.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
+    //         entries.push(encrypted_entry);
     //     }
-    //     pks.iter().filter(|&el| el.ne(pk)).map(|pk| *pk).collect()
+    //
+    //     for file in &self.files {
+    //         let encrypted_file = file.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
+    //         files.push(encrypted_file);
+    //     }
+    //
+    //     EncryptedMessage {
+    //         parties: parties_hash,
+    //         entries,
+    //         files,
+    //     }
     // }
+
+
 }

@@ -11,12 +11,13 @@ pub mod whitelist;
 
 use std::error::Error;
 use colored::Colorize;
+use sodiumoxide::crypto::box_;
 
 use wallet::Wallet;
 use crate::account::{Account, AccountInput};
 use crate::cli::config::{Config, ConfigFile};
 use crate::cli::input::{Command, FlagKey, Input};
-use crate::message::input::MessageInput;
+use crate::message::input::BatchInput;
 use crate::owner::Owner;
 use crate::wallet::WalletInput;
 use crate::node::errors::NodeError;
@@ -111,7 +112,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
         Command::ComposeMessgae => {
             let config_file: ConfigFile = ConfigFile::new();
 
-            let mi = match MessageInput::new(&mut input, &config_file) {
+            let bi = match BatchInput::new(&mut input, &config_file) {
                 Ok(input) => input,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
@@ -122,7 +123,9 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             //     Err(e) => return Err(Box::<dyn Error>::from(e)),
             // };
 
-            let _batch = match Batch::new(&mi) {
+            let secret_nonce = box_::gen_nonce();
+
+            let _batch = match Batch::new(&bi, &secret_nonce) {
                 Ok(batch) => batch,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };

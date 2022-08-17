@@ -1,30 +1,30 @@
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use crate::message::nonce::{EncryptedNonce, Nonce};
-use crate::MessageInput;
 use serde_derive::{Serialize, Deserialize};
 use sodiumoxide::crypto::box_;
 use crate::message::errors::MessageError;
 use crate::message::group::{EncryptedGroup, Group};
+use crate::message::input::BatchInput;
 
 
 pub struct SessionInput {}
 
-impl SessionInput {
-    pub fn new(mi: &MessageInput) -> Session {
-        let nonce = Nonce::new(mi.otu.nonce.secret);
-
-        let mut group = Group::new();
-        group.add(&mi.sender.public);
-        for recipient in &mi.recipients {
-            group.add(&recipient);
-        }
-
-        Session {
-            nonce,
-            group
-        }
-    }
-}
+// impl SessionInput {
+//     pub fn new(bi: &BatchInput, nonce: &box_::Nonce) -> Session {
+//         let nonce = Nonce::new(nonce);
+//
+//         let mut group = Group::new();
+//         group.add(&bi.sender.public);
+//         for recipient in &bi.recipients {
+//             group.add(&recipient);
+//         }
+//
+//         Session {
+//             nonce,
+//             group
+//         }
+//     }
+// }
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,19 +34,29 @@ pub struct Session{
 }
 
 impl Session {
-    pub fn new(nonce: Nonce, group: Group) -> Session {
+    pub fn new(bi: &BatchInput, nonce: &box_::Nonce) -> Session {
+        let nonce = Nonce::new(nonce);
+
+        let mut group = Group::new();
+        group.add(&bi.sender.public);
+        for recipient in &bi.recipients {
+            group.add(&recipient);
+        }
+
         Session {
             nonce,
             group
         }
     }
 
-    pub fn encrypt(&self, mi: &MessageInput, pk: &PublicKey) -> EncryptedSession {
-        let encrypted_nonce = self.nonce.encrypt(&mi.otu.nonce.public, &pk, &mi.otu.broker.secret);
-
-        let encrypted_group = self.group.encrypt(&mi.otu.nonce.secret, &pk, &mi.otu.broker.secret);
-        // let counterparties = self.group.get_counterparties(pk);
-        // let encrypted_counterparties = counterparties.encrypt(&mi.otu.nonce.secret, &pk, &mi.otu.broker.secret);
+    pub fn encrypt(
+        &self,
+        public_nonce: &box_::Nonce,
+        pk: &PublicKey,
+        sk: &SecretKey
+    ) -> EncryptedSession {
+        let encrypted_nonce = self.nonce.encrypt(&public_nonce, &pk, &sk);
+        let encrypted_group = self.group.encrypt(&self.nonce.0, &pk, &sk);
 
         EncryptedSession {
             nonce: encrypted_nonce,
@@ -73,6 +83,7 @@ impl EncryptedSession {
         let encrypted_nonce = &self.nonce;
         let secret_nonce = match encrypted_nonce.decrypt(&public_nonce, &pk, &sk) {
             Ok(res) => res,
+
             Err(e) => return Err(e),
         };
 
@@ -82,7 +93,11 @@ impl EncryptedSession {
             Err(e) => return Err(e),
         };
 
-        let session = Session::new(secret_nonce, group);
+        let session = Session {
+            nonce: secret_nonce,
+            group,
+        };
+
         Ok(session)
     }
 }

@@ -33,10 +33,6 @@ impl Group {
         EncryptedGroup(encrypted_group)
     }
 
-    // pub fn get_counterparties(&self, pk: &PublicKey) -> Parties {
-    //     Parties(self.0.iter().filter(|p| p.0.ne(pk)).map(|p| *p).collect())
-    // }
-
     pub fn get_sender(&self) -> PublicKey {
         self.0.first().unwrap().0
     }

@@ -12,8 +12,8 @@ pub struct Nonce(pub box_::Nonce);
 impl Encryption for Nonce {}
 
 impl Nonce {
-    pub fn new(nonce: box_::Nonce) -> Nonce {
-        Nonce(nonce)
+    pub fn new(nonce: &box_::Nonce) -> Nonce {
+        Nonce(*nonce)
     }
 
     pub fn encrypt(&self, nonce: &box_::Nonce, pk: &PublicKey, sk: &SecretKey) -> EncryptedNonce {
@@ -40,7 +40,7 @@ impl EncryptedNonce {
 
         let nonce = match Nonce::decrypt_data(&encrypted_nonce.as_ref(), nonce, pk, sk) {
             Ok(res) => match box_::Nonce::from_slice(&res) {
-                Some(nonce) => Nonce::new(nonce),
+                Some(nonce) => Nonce::new(&nonce),
                 None => return Err(MessageError::DecryptionError),
             },
             Err(e) => return Err(e),
