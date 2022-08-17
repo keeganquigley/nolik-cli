@@ -14,7 +14,7 @@ pub enum NodeError {
     PalletAddressNotOwned,
     PalletAccountInOwners,
     PalletSameAddress,
-    PalletAlreadyInWhiteList,
+    PalletAlreadyInWhitelist,
     PalletAlreadyInBlacklist,
     PalletUnknownError,
 }
@@ -33,7 +33,7 @@ impl Display for NodeError {
             NodeError::PalletAccountInOwners => f.write_str("Account is already owned by this wallet"),
             NodeError::PalletAddressNotOwned => f.write_str("Account is not owned by this wallet"),
             NodeError::PalletSameAddress => f.write_str("Trying to add your own address"),
-            NodeError::PalletAlreadyInWhiteList => f.write_str("Address is already in Whitelist"),
+            NodeError::PalletAlreadyInWhitelist => f.write_str("Address is already in Whitelist"),
             NodeError::PalletAlreadyInBlacklist => f.write_str("Address is already in Blacklist"),
             NodeError::PalletUnknownError => f.write_str("Unknown error"),
         }

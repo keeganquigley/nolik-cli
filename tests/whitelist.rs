@@ -4,6 +4,7 @@ mod owner {
     use sp_core::crypto::AccountId32;
     use sp_keyring::AccountKeyring;
     use nolik_cli::account::{Account, AccountInput};
+    use nolik_cli::blacklist::Blacklist;
     use nolik_cli::cli::config::ConfigFile;
     use nolik_cli::cli::input::Input;
     use nolik_cli::node::errors::NodeError;
@@ -139,8 +140,8 @@ mod owner {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let owner = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.update().await.is_ok();
+        let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        let res = whitelist.update().await.is_ok();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -187,8 +188,8 @@ mod owner {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let owner = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.update().await.unwrap_err();
+        let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        let res = whitelist.update().await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -238,8 +239,8 @@ mod owner {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let owner = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.update().await.unwrap_err();
+        let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        let res = whitelist.update().await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -306,14 +307,82 @@ mod owner {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let owner = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.update().await.unwrap_err();
+        let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        let res = whitelist.update().await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
         assert_eq!(
             res,
-            NodeError::PalletAlreadyInWhiteList,
+            NodeError::PalletAlreadyInWhitelist,
+        );
+    }
+
+
+    #[async_std::test]
+    async fn add_to_whitelist_of_address_already_added_to_blacklist() {
+        let config_file = create_new_config_file().await;
+        let alice = Account::get(&config_file, String::from("alice")).unwrap();
+        let bob = Account::get(&config_file, String::from("bob")).unwrap();
+        let wallet_a = Wallet::get(&config_file, String::from("wallet_a"), Some(String::from("pass"))).unwrap();
+
+
+        let arr = [
+            "add",
+            "owner",
+            "--account",
+            format!("{}", alice.alias).as_str(),
+            "--wallet",
+            format!("{}", wallet_a.alias).as_str()
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+
+        let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        owner.add().await.unwrap();
+
+
+        let arr = [
+            "update",
+            "blacklist",
+            "--for",
+            format!("{}", alice.alias).as_str(),
+            "--add",
+            format!("{}", bs58::encode(bob.public).into_string()).as_str(),
+            "--wallet",
+            format!("{}", wallet_a.alias).as_str(),
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+
+        let blacklist = Blacklist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        blacklist.update().await.unwrap();
+
+
+        let arr = [
+            "update",
+            "whitelist",
+            "--for",
+            format!("{}", alice.alias).as_str(),
+            "--add",
+            format!("{}", bs58::encode(bob.public).into_string()).as_str(),
+            "--wallet",
+            format!("{}", wallet_a.alias).as_str(),
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+
+        let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
+        let res = whitelist.update().await.unwrap_err();
+
+        fs::remove_file(config_file.path).unwrap();
+
+        assert_eq!(
+            res,
+            NodeError::PalletAlreadyInBlacklist,
         );
     }
 }

@@ -120,7 +120,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             let blacklist = match Blacklist::new(&input, &config_file, password) {
-                Ok(whitelist) => whitelist,
+                Ok(blacklist) => blacklist,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 

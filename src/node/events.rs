@@ -96,7 +96,7 @@ pub trait NodeEvent {
                             let pallet_error = match error_metadata.error() {
                                 pallet_errors::ERROR_ACCOUNT_IN_OWNERS => NodeError::PalletAccountInOwners,
                                 pallet_errors::ERROR_ADDRESS_NOT_OWNED => NodeError::PalletAddressNotOwned,
-                                pallet_errors::ERROR_ALREADY_IN_WHITELIST => NodeError::PalletAlreadyInWhiteList,
+                                pallet_errors::ERROR_ALREADY_IN_WHITELIST => NodeError::PalletAlreadyInWhitelist,
                                 pallet_errors::ERROR_ALREADY_IN_BLACKLIST => NodeError::PalletAlreadyInBlacklist,
                                 pallet_errors::ERROR_SAME_ADDRESS => NodeError::PalletSameAddress,
                                 _ => NodeError::PalletUnknownError,
