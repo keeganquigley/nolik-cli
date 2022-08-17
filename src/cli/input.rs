@@ -131,7 +131,7 @@ impl Input {
 
         match values.len() {
             0 => {
-                println!("No such key: {:?}", flag_key);
+                println!("Missing key: {:?}", flag_key);
                 return Err(InputError::NoSuchKey)
             },
             _ => Ok(values)

@@ -1,5 +1,5 @@
 use sodiumoxide::crypto::box_::PublicKey;
-use crate::{Account, ConfigFile, FlagKey, Input, NodeEvent, Wallet};
+use crate::{Account, ConfigFile, FlagKey, Input, NodeError, NodeEvent, Wallet};
 use crate::cli::errors::InputError;
 use crate::node::events::AddToWhitelist;
 use crate::node::extrinsics::add_to_whitelist;
@@ -65,18 +65,18 @@ impl Whitelist {
         })
     }
 
-    pub async fn update(&self) -> Result<(), InputError> {
+    pub async fn update(&self) -> Result<(), NodeError> {
         let pair = match self.wallet.get_pair() {
             Ok(pair) => pair,
-            Err(_e) => return Err(InputError::CouldNotAddOwner),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(NodeError::CouldNotSubmitEvent);
+            }
         };
 
         let extrinsic_hash = match add_to_whitelist(&pair, &self.account.public, &self.new_address).await {
             Ok(hash) => hash,
-            Err(e) => {
-                eprintln!("Error: {}", e);
-                return Err(InputError::CouldNotUpdateWhitelist);
-            }
+            Err(e) => return Err(e),
         };
 
         let event = AddToWhitelist;
@@ -87,7 +87,7 @@ impl Whitelist {
                 println!("{}", res.bright_green());
                 Ok(())
             },
-            Err(_e) => return Err(InputError::CouldNotUpdateWhitelist),
+            Err(e) => return Err(e),
         }
     }
 }
