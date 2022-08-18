@@ -7,8 +7,10 @@ use serde_derive::{Serialize, Deserialize};
 use blake2::Digest;
 use blake2::digest::Update;
 use std::io::Cursor;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use sodiumoxide::crypto::box_;
 use crate::message::session::{EncryptedSession, Session};
+use colored::Colorize;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -96,8 +98,14 @@ impl Batch {
         match client.add(data).await {
             Ok(res) => {
                 match client.pin_add(&res.hash, true).await {
-                    Ok(_res) => {
-                        println!("File has been saved to the IPFS network with ID: {:?}", res.hash);
+                    Ok(_pin) => {
+                        let output = format!("Message has been composed!");
+                        let hash = format!("IPFS hash: {}", &res.hash);
+
+                        println!("{} {}", output.bright_green(), hash);
+
+                        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                        ctx.set_contents(res.hash.clone()).unwrap();
                     },
                     Err(e) => {
                         eprintln!("Error on pinning IPFS file: {:#?}", e);

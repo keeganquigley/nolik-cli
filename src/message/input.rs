@@ -102,43 +102,4 @@ impl BatchInput {
             files,
         })
     }
-
-    // pub fn encrypt(&self, pk: &PublicKey) -> EncryptedMessage {
-    //     // let nonce: Nonce = Nonce::new(self.otu.nonce.secret);
-    //     // let encrypted_nonce = nonce.encrypt(&self.otu.nonce.public, &pk, &self.sender.secret);
-    //     //
-    //     // let mut parties: Parties = Parties::new();
-    //     // parties.add(&self.sender.public);
-    //     // for recipient in &self.recipients {
-    //     //     parties.add(recipient);
-    //     // }
-    //     //
-    //     // let encrypted_parties = parties.encrypt(&self.otu.nonce.secret, pk, &self.sender.secret);
-    //     let mut parties = blake2::Blake2s256::new();
-    //     Update::update(&mut parties, &self.sender.public.as_ref());
-    //     Update::update(&mut parties, &pk.as_ref());
-    //     let parties_hash = base64::encode(parties.finalize().to_vec());
-    //
-    //
-    //     let mut entries: Vec<EncryptedEntry> = Vec::new();
-    //     let mut files: Vec<EncryptedFile> = Vec::new();
-    //
-    //     for entry in &self.entries {
-    //         let encrypted_entry = entry.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
-    //         entries.push(encrypted_entry);
-    //     }
-    //
-    //     for file in &self.files {
-    //         let encrypted_file = file.encrypt(&self.otu.nonce.secret, &pk, &self.sender.secret);
-    //         files.push(encrypted_file);
-    //     }
-    //
-    //     EncryptedMessage {
-    //         parties: parties_hash,
-    //         entries,
-    //         files,
-    //     }
-    // }
-
-
 }

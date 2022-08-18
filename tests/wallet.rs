@@ -294,6 +294,8 @@ mod wallet {
         let event = BalanceTransferEvent;
         let res = event.submit(&extrinsic_hash).await.is_ok();
 
+        fs::remove_file(config_file.path).unwrap();
+
         assert_eq!(
             res,
             true,

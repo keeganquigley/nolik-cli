@@ -88,7 +88,7 @@ impl Input {
                         flags::WALLET | flags::W => FlagKey::Wallet,
                         flags::ADD => FlagKey::Add,
                         flags::FOR => FlagKey::For,
-                        flags::IPFS_ID => FlagKey::IpfsId,
+                        flags::HASH | flags::H => FlagKey::IpfsId,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 
@@ -134,7 +134,7 @@ impl Input {
 
         match values.len() {
             0 => {
-                println!("Missing key: {:?}", flag_key);
+                // println!("Missing key: {:?}", flag_key);
                 return Err(InputError::NoSuchKey)
             },
             _ => Ok(values)

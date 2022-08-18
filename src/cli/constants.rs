@@ -34,7 +34,8 @@ pub mod flags {
     pub const WALLET: &str = "--wallet";
     pub const ADD: &str = "--add";
     pub const FOR: &str = "--for";
-    pub const IPFS_ID: &str = "--ipfs-id";
+    pub const H: &str = "-h";
+    pub const HASH: &str = "--hash";
 }
 
 pub mod pallet_errors {

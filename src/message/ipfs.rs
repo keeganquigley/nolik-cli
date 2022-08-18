@@ -109,42 +109,5 @@ impl IpfsFile {
             },
             Err(e) => return Err(e),
         }
-
-        // let (pair, _seed) = match sp_core::sr25519::Pair::from_phrase(&wallet.seed, wallet.password.as_deref()) {
-        //     Ok(res) => res,
-        //     Err(e) => {
-        //         eprintln!("Error: {:?}", e);
-        //         return Err(MessageError::CouldNotSendMessage);
-        //     }
-        // };
-        //
-        // let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
-        //
-        // let extrinsic_hash = match send_message(
-        //     owner,
-        //     &pair,
-        //     &sender,
-        //     &recipient,
-        //     &self.0,
-        // ).await {
-        //     Ok(hash) => hash,
-        //
-        //     Err(e) => {
-        //         eprintln!("Error: {:?}", e);
-        //         return Err(MessageError::CouldNotSendMessage);
-        //     }
-        // };
-        //
-        // match call_extrinsic(&extrinsic_hash).await {
-        //     Ok(tx) => {
-        //         println!("Successfully sent the message");
-        //         println!("Transaction ID: {:?}", tx);
-        //         Ok(())
-        //     },
-        //     Err(e) => {
-        //         eprintln!("Error: {:?}", e);
-        //         return Err(MessageError::CouldNotSendMessage)
-        //     },
-        // }
     }
 }

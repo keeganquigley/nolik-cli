@@ -94,7 +94,6 @@ impl Rules {
             Command::ComposeMessage =>
                 Rules {
                     valid_keys: vec![
-                        // FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                         FlagKey::Key,
@@ -102,12 +101,10 @@ impl Rules {
                         FlagKey::File,
                     ],
                     required_keys: vec![
-                        // FlagKey::Wallet,
                         FlagKey::Sender,
                         FlagKey::Recipient,
                     ],
                     unique_keys: vec![
-                        // FlagKey::Wallet,
                         FlagKey::Sender,
                     ],
                 },
