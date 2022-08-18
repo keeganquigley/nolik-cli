@@ -16,7 +16,7 @@ pub struct WalletInput {
 }
 
 impl WalletInput {
-    pub fn new(input: Input, password: Option<String>) -> Result<WalletInput, InputError> {
+    pub fn new(input: &Input, password: Option<String>) -> Result<WalletInput, InputError> {
 
         let alias = match input.get_flag_value(FlagKey::Alias) {
             Ok(name) => name,
@@ -114,7 +114,7 @@ impl Wallet {
     }
 
 
-    pub fn add(config_file: ConfigFile, wallet: Wallet) -> Result<(), ConfigError> {
+    pub fn add(config_file: &ConfigFile, wallet: &Wallet) -> Result<(), ConfigError> {
         let mut config= match Config::new(&config_file) {
             Ok(config) => config,
             Err(e) => return Err(e),
@@ -221,12 +221,12 @@ pub struct WalletOutput {
 
 
 impl WalletOutput {
-    pub fn new(wallet: Wallet) -> WalletOutput {
+    pub fn new(wallet: &Wallet) -> WalletOutput {
         WalletOutput {
-            alias: wallet.alias,
+            alias: wallet.alias.clone(),
             public: wallet.public.to_string(),
-            seed: wallet.seed,
-            bs58seed: wallet.bs58seed,
+            seed: wallet.seed.clone(),
+            bs58seed: wallet.bs58seed.clone(),
         }
     }
 }

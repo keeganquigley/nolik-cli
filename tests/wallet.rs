@@ -24,11 +24,11 @@ mod wallet {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
@@ -60,11 +60,11 @@ mod wallet {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
@@ -95,11 +95,11 @@ mod wallet {
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let arr = [
             "add",
@@ -111,10 +111,10 @@ mod wallet {
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_b, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
-        let should_err = Wallet::add(config_file.clone(), wallet).unwrap_err();
+        let should_err = Wallet::add(&config_file, &wallet).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -138,11 +138,11 @@ mod wallet {
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let arr = [
             "add",
@@ -156,10 +156,10 @@ mod wallet {
         let args = arr.iter();
         let input_b = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_b, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_b, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
-        let should_err = Wallet::add(config_file.clone(), wallet).unwrap_err();
+        let should_err = Wallet::add(&config_file, &wallet).unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -183,7 +183,7 @@ mod wallet {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap_err();
 
         assert_eq!(
@@ -199,11 +199,11 @@ mod wallet {
         let args = arr.iter();
         let input = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let mut file = fs::OpenOptions::new()
             .write(true)
@@ -238,11 +238,11 @@ mod wallet {
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let wallet_key = String::from("test");
         let password = Some(String::from("pass"));
@@ -276,11 +276,11 @@ mod wallet {
         let args = arr.iter();
         let input_a = Input::new(args).unwrap();
 
-        let wallet_input = WalletInput::new(input_a, Some(String::from("pass"))).unwrap();
+        let wallet_input = WalletInput::new(&input_a, Some(String::from("pass"))).unwrap();
         let wallet = Wallet::new(wallet_input).unwrap();
 
         let config_file: ConfigFile = ConfigFile::temp();
-        Wallet::add(config_file.clone(), wallet).unwrap();
+        Wallet::add(&config_file, &wallet).unwrap();
 
         let wallet_key = String::from("test");
         let password = Some(String::from("pass"));

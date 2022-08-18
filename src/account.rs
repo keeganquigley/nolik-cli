@@ -80,7 +80,7 @@ impl Account {
         })
     }
 
-    pub fn add(config_file: &ConfigFile, account: Account) -> Result<(), ConfigError> {
+    pub fn add(config_file: &ConfigFile, account: &Account) -> Result<(), ConfigError> {
         let mut config  = match Config::new(&config_file) {
             Ok(config) => config,
             Err(e) => return Err(e),
@@ -127,7 +127,7 @@ impl Account {
         let account = match account_outputs.len() {
             1 => {
                 let last_account_output = account_outputs.last().unwrap().to_owned();
-                match AccountOutput::deserialize(last_account_output) {
+                match AccountOutput::deserialize(&last_account_output) {
                     Ok(account) => account,
                     Err(_e) => return Err(ConfigError::CouldNotGetAccount),
                 }
@@ -149,16 +149,16 @@ pub struct AccountOutput {
 }
 
 impl AccountOutput {
-    pub fn serialize(account: Account) -> AccountOutput {
+    pub fn serialize(account: &Account) -> AccountOutput {
         AccountOutput {
-            alias: account.alias,
+            alias: account.alias.clone(),
             public: bs58::encode(&account.public).into_string(),
             secret: bs58::encode(&account.secret).into_string(),
             seed: bs58::encode(&account.seed).into_string(),
         }
     }
 
-    pub fn deserialize(account_output: AccountOutput) -> Result<Account, MessageError> {
+    pub fn deserialize(account_output: &AccountOutput) -> Result<Account, MessageError> {
         let public = match base58_to_public_key(&account_output.public) {
             Ok(public) => public,
             Err(e) => return Err(e),
@@ -175,7 +175,7 @@ impl AccountOutput {
         };
 
         Ok(Account {
-            alias: account_output.alias,
+            alias: account_output.alias.clone(),
             public,
             secret,
             seed,

@@ -44,7 +44,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            let wallet_input = match WalletInput::new(input, password) {
+            let wallet_input = match WalletInput::new(&input, password) {
                 Ok(input) => input,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
@@ -55,7 +55,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             let config_file = ConfigFile::new();
-            if let Err(e) = Wallet::add(config_file, wallet) {
+            if let Err(e) = Wallet::add(&config_file, &wallet) {
                 return Err(Box::<dyn Error>::from(e));
             }
         }
@@ -71,10 +71,11 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             let config_file = ConfigFile::new();
-            if let Err(e) = Account::add(&config_file, account) {
+            if let Err(e) = Account::add(&config_file, &account) {
                 return Err(Box::<dyn Error>::from(e));
             }
         },
+
         Command::AddOwner => {
             let config_file: ConfigFile = ConfigFile::new();
 

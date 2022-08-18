@@ -56,6 +56,16 @@ impl Call for NolikAddToBlacklist {
 }
 
 
+pub struct NolikSendMessage;
+
+impl Encode for NolikSendMessage {}
+
+impl Call for NolikSendMessage {
+    const PALLET: &'static str = "Nolik";
+    const FUNCTION: &'static str = "send_message";
+}
+
+
 pub async fn call_indexes<T: Call>() -> Result<(u8, u8), NodeError> {
 
     let api = ClientBuilder::new()
@@ -320,7 +330,71 @@ pub async fn add_to_blacklist(
 }
 
 
+
 pub async fn send_message(
+    pair: &sp_core::sr25519::Pair,
+    sender: &PublicKey,
+    recipient: &PublicKey,
+    ipfs_id: &String,
+) -> Result<String, NodeError> {
+
+    let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
+    let sender = bs58::encode(&sender).into_string();
+    let recipient = bs58::encode(&recipient).into_string();
+
+    let (nonce, genesis_hash, runtime_version) = match get_meta(&owner).await {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+
+    let (pallet_index, call_index) = match call_indexes::<NolikSendMessage>().await {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+
+    let indexes: [u8; 2] = [pallet_index, call_index];
+    let call: Vec<u8>  = [
+        indexes.to_vec(),
+        sender.encode().clone(),
+        recipient.encode().clone(),
+        ipfs_id.encode().clone(),
+    ].concat();
+
+    let extra = (
+        Era::Immortal,
+        Compact(nonce),
+        Compact(0u128),
+    );
+
+    let additional = (
+        runtime_version.spec_version,
+        runtime_version.transaction_version,
+        genesis_hash,
+        genesis_hash,
+    );
+
+    let call_tup = (
+        pallet_index,
+        call_index,
+        sender,
+        recipient,
+        ipfs_id,
+    );
+
+    let payload = (
+        &call_tup,
+        &extra,
+        &additional
+    );
+
+    let signature = payload.using_encoded(|payload| pair.sign(&payload));
+    let extrinsic = encode_extrinsic(owner, signature, extra, call);
+    let extrinsic_hash = format!("0x{}", hex::encode(extrinsic));
+    Ok(extrinsic_hash)
+}
+
+
+pub async fn send_message1(
     owner: AccountId32,
     pair: &sp_core::sr25519::Pair,
     sender: &PublicKey,

@@ -88,6 +88,7 @@ impl Input {
                         flags::WALLET | flags::W => FlagKey::Wallet,
                         flags::ADD => FlagKey::Add,
                         flags::FOR => FlagKey::For,
+                        flags::IPFS_ID => FlagKey::IpfsId,
                         _ => return Err(InputError::UnrecognisedFlag)
                     };
 

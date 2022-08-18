@@ -21,6 +21,7 @@ pub enum InputError {
     CouldNotAddOwner,
     CouldNotUpdateWhitelist,
     CouldNotUpdateBlacklist,
+    CouldNotGetWallet,
 }
 
 
@@ -45,6 +46,7 @@ impl Display for InputError {
             InputError::CouldNotAddOwner => f.write_str("Could not add owner"),
             InputError::CouldNotUpdateWhitelist => f.write_str("Could not update Whitelist"),
             InputError::CouldNotUpdateBlacklist => f.write_str("Could not update Blacklist"),
+            InputError::CouldNotGetWallet => f.write_str("Could not find required wallet from provided input"),
         }
     }
 }

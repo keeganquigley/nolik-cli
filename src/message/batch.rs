@@ -1,6 +1,4 @@
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
-// use std::path::PathBuf;
-// use serde_derive::{Serialize, Deserialize};
 use crate::message::errors::MessageError;
 use crate::message::input::BatchInput;
 use crate::message::ipfs::IpfsFile;
@@ -8,12 +6,8 @@ use crate::message::message::{EncryptedMessage, Message};
 use serde_derive::{Serialize, Deserialize};
 use blake2::Digest;
 use blake2::digest::Update;
-// use crate::message::utils::{base58_to_public_key, base58_to_secret_key};
-
 use std::io::Cursor;
 use sodiumoxide::crypto::box_;
-// use crate::message::nonce::{EncryptedNonce, Nonce};
-// use crate::message::parties::{EncryptedParties, Parties};
 use crate::message::session::{EncryptedSession, Session};
 
 
@@ -35,7 +29,6 @@ impl Batch {
     pub fn new(bi: &BatchInput, secret_nonce: &box_::Nonce) -> Result<Batch, MessageError> {
 
         let public_nonce = box_::gen_nonce();
-        // let secret_nonce = box_::gen_nonce();
         let broker = box_::gen_keypair();
 
         let mut sessions: Vec<EncryptedSession> = Vec::new();
@@ -59,13 +52,14 @@ impl Batch {
         Ok(Batch {
             nonce: base64::encode(&public_nonce),
             broker: base64::encode(&broker.0),
-            hash: Self::get_batch_hash(&bi, &secret_nonce),
+            hash: Self::hash(&bi, &secret_nonce),
             sessions,
             messages
         })
     }
 
-    pub fn get_batch_hash(bi: &BatchInput, nonce: &box_::Nonce) -> String {
+
+    pub fn hash(bi: &BatchInput, nonce: &box_::Nonce) -> String {
         let mut hash = blake2::Blake2s256::new();
         Update::update(&mut hash, &nonce.as_ref());
         Update::update(&mut hash, &bi.sender.public.as_ref());
@@ -110,9 +104,8 @@ impl Batch {
                         return Err(MessageError::CouldNotAddFileToIPFS)
                     }
                 }
-                Ok(IpfsFile {
-                    ipfs_id: res.hash
-                })
+                let ipfs_file = IpfsFile::new(res.hash);
+                Ok(ipfs_file)
             },
             Err(e) => {
                 eprintln!("Error on adding file to IPFS: {:#?}", e);

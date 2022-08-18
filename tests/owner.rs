@@ -29,7 +29,7 @@ mod owner {
         let account_input = AccountInput::new(input).unwrap();
         let account = Account::new(account_input).unwrap();
 
-        Account::add(&config_file, account.clone()).unwrap();
+        Account::add(&config_file, &account).unwrap();
 
         let arr = [
             "add",
@@ -43,10 +43,10 @@ mod owner {
 
         let password = String::from("pass");
 
-        let wallet_input = WalletInput::new(input, Some(password)).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(password)).unwrap();
         let wallet_a = Wallet::new(wallet_input).unwrap();
 
-        Wallet::add(config_file.clone(), wallet_a.clone()).unwrap();
+        Wallet::add(&config_file, &wallet_a).unwrap();
 
 
         let arr = [
@@ -61,10 +61,10 @@ mod owner {
 
         let password = String::from("pass");
 
-        let wallet_input = WalletInput::new(input, Some(password)).unwrap();
+        let wallet_input = WalletInput::new(&input, Some(password)).unwrap();
         let wallet_b = Wallet::new(wallet_input).unwrap();
 
-        Wallet::add(config_file.clone(), wallet_b.clone()).unwrap();
+        Wallet::add(&config_file, &wallet_b).unwrap();
 
 
         let sender = AccountKeyring::Alice;

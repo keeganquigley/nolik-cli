@@ -99,6 +99,8 @@ pub trait NodeEvent {
                                 pallet_errors::ERROR_ALREADY_IN_WHITELIST => NodeError::PalletAlreadyInWhitelist,
                                 pallet_errors::ERROR_ALREADY_IN_BLACKLIST => NodeError::PalletAlreadyInBlacklist,
                                 pallet_errors::ERROR_SAME_ADDRESS => NodeError::PalletSameAddress,
+                                pallet_errors::ERROR_ADDRESS_IN_BLACKLIST => NodeError::PalletAddressInBlacklist,
+                                pallet_errors::ERROR_ADDRESS_NOT_IN_WHITELIST => NodeError::PalletAddressNotInWhitelist,
                                 _ => NodeError::PalletUnknownError,
                             };
 
@@ -139,6 +141,15 @@ pub struct AddToBlacklist;
 
 impl NodeEvent for AddToBlacklist {
     type S = polkadot::nolik::events::AddBlackList;
+    type F = polkadot::system::events::ExtrinsicFailed;
+}
+
+
+#[derive(Debug)]
+pub struct SendMessage;
+
+impl NodeEvent for SendMessage {
+    type S = polkadot::nolik::events::MessageSent;
     type F = polkadot::system::events::ExtrinsicFailed;
 }
 

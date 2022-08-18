@@ -16,6 +16,8 @@ pub enum NodeError {
     PalletSameAddress,
     PalletAlreadyInWhitelist,
     PalletAlreadyInBlacklist,
+    PalletAddressInBlacklist,
+    PalletAddressNotInWhitelist,
     PalletUnknownError,
 }
 
@@ -35,6 +37,8 @@ impl Display for NodeError {
             NodeError::PalletSameAddress => f.write_str("Trying to add your own address"),
             NodeError::PalletAlreadyInWhitelist => f.write_str("Address is already in Whitelist"),
             NodeError::PalletAlreadyInBlacklist => f.write_str("Address is already in Blacklist"),
+            NodeError::PalletAddressInBlacklist => f.write_str("Your address is in the Blacklist of the recipient"),
+            NodeError::PalletAddressNotInWhitelist => f.write_str("Your address is not in the Whitelist of the recipient"),
             NodeError::PalletUnknownError => f.write_str("Unknown error"),
         }
     }

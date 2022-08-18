@@ -34,6 +34,7 @@ pub mod flags {
     pub const WALLET: &str = "--wallet";
     pub const ADD: &str = "--add";
     pub const FOR: &str = "--for";
+    pub const IPFS_ID: &str = "--ipfs-id";
 }
 
 pub mod pallet_errors {
@@ -42,4 +43,6 @@ pub mod pallet_errors {
     pub const ERROR_SAME_ADDRESS: &str = "SameAddress";
     pub const ERROR_ALREADY_IN_WHITELIST: &str = "AlreadyInWhiteList";
     pub const ERROR_ALREADY_IN_BLACKLIST: &str = "AlreadyInBlackList";
+    pub const ERROR_ADDRESS_IN_BLACKLIST: &str = "AddressInBlackList";
+    pub const ERROR_ADDRESS_NOT_IN_WHITELIST: &str = "AddressNotInWhiteList";
 }
