@@ -13,10 +13,7 @@ pub trait Encryption {
     fn decrypt_data(data: &[u8], nonce: &Nonce, pk: &PublicKey, sk: &SecretKey) -> Result<Vec<u8>, MessageError> {
         let decrypted_data = match box_::open(&data, &nonce, &pk, &sk) {
             Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(MessageError::DecryptionError);
-            }
+            Err(_e) => return Err(MessageError::DecryptionError),
         };
         Ok(decrypted_data)
     }

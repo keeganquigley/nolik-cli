@@ -69,6 +69,9 @@ pub enum ConfigError {
     AccountNameIsNotUnique,
     CouldNotGetAccount,
     CouldNotGetWallet,
+    CouldNotGetBatchNonce,
+    CouldNotGetBatchBroker,
+    CouldNotInitSender,
 }
 
 
@@ -87,6 +90,9 @@ impl Display for ConfigError {
             ConfigError::AccountNameIsNotUnique => f.write_str("Account name is not unique"),
             ConfigError::CouldNotGetAccount => f.write_str("Could not get account from config file"),
             ConfigError::CouldNotGetWallet => f.write_str("Could not get wallet from config file"),
+            ConfigError::CouldNotGetBatchNonce => f.write_str("Could not get batch nonce"),
+            ConfigError::CouldNotGetBatchBroker => f.write_str("Could not get batch broker"),
+            ConfigError::CouldNotInitSender => f.write_str("The message you are trying to send has a sender, but it does not match any of your accounts from config file")
         }
     }
 }

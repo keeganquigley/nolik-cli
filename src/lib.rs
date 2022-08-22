@@ -25,9 +25,9 @@ use crate::node::socket::Socket;
 use sp_core::crypto::AccountId32;
 use sp_keyring::AccountKeyring;
 use crate::blacklist::Blacklist;
+use crate::cli::errors::ConfigError;
 use crate::message::batch::Batch;
 use crate::message::ipfs::IpfsInput;
-use crate::message::session::Session;
 use crate::message::utils::{base64_to_nonce, base64_to_public_key};
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
 use crate::node::extrinsics::balance_transfer;
@@ -153,7 +153,6 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
         },
         Command::SendMessage => {
             let config_file: ConfigFile = ConfigFile::new();
-            let config = Config::new(&config_file).unwrap();
 
             let password = match Wallet::password_input_once() {
                 Ok(password) => Some(password),
@@ -170,37 +169,15 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            let public_nonce = base64_to_nonce(&batch.nonce).unwrap();
-            let broker = base64_to_public_key(&batch.broker).unwrap();
+            let (sender, recipients) = match batch.parties(&config_file) {
+                Ok(res) => res,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
 
-            for account_output in &config.data.accounts {
-                let account = match AccountOutput::deserialize(&account_output) {
-                    Ok(res) => res,
-                    Err(e) => return Err(Box::<dyn Error>::from(e)),
-                };
-
-                let mut decrypted_sessions: Vec<Session> = Vec::new();
-                for es in &batch.sessions {
-                    if let Ok(session) = es.decrypt(&public_nonce, &broker, &account.secret) {
-                        decrypted_sessions.push(session);
-                        break;
-                    }
+            for pk in recipients {
+                if let Err(e) = ipfs_input.ipfs_file.send(&sender, &pk, &ipfs_input.wallet).await {
+                    return Err(Box::<dyn Error>::from(e));
                 }
-
-                let session = decrypted_sessions.first().unwrap();
-                let sender = session.group.get_sender();
-                let recipients = session.group.get_recipients();
-
-                if sender.ne(&account.public) { continue }
-
-                for pk in recipients {
-                    let res = ipfs_input.ipfs_file.send(&sender, &pk, &ipfs_input.wallet).await;
-                    if let Err(e) = res {
-                        return Err(Box::<dyn Error>::from(e));
-                    }
-                }
-
-                break;
             }
         },
         Command::GetMessages => {

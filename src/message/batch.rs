@@ -11,6 +11,7 @@ use clipboard::{ClipboardContext, ClipboardProvider};
 use sodiumoxide::crypto::box_;
 use crate::message::session::{EncryptedSession, Session};
 use colored::Colorize;
+use crate::{AccountOutput, base64_to_nonce, base64_to_public_key, Config, ConfigError, ConfigFile};
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -120,5 +121,43 @@ impl Batch {
                 return Err(MessageError::CouldNotAddFileToIPFS)
             }
         }
+    }
+
+
+    pub fn parties(&self, config_file: &ConfigFile) -> Result<(box_::PublicKey, Vec<box_::PublicKey>), ConfigError> {
+
+        let public_nonce = match base64_to_nonce(&self.nonce) {
+            Ok(res) => res,
+            Err(_e) => return Err(ConfigError::CouldNotGetBatchNonce)
+        };
+
+        let broker = match base64_to_public_key(&self.broker) {
+            Ok(res) => res,
+            Err(_e) => return Err(ConfigError::CouldNotGetBatchBroker)
+        };
+
+        let config = match Config::new(&config_file) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+
+        let sessions: Vec<Session> = config.data.accounts
+            .iter()
+            .map(|ao| AccountOutput::deserialize(ao).unwrap())
+            .map(|a| (a, self.sessions.first().unwrap()))
+            .filter_map(|el| el.1.decrypt(&public_nonce, &broker, &el.0.secret).ok())
+            .collect();
+
+
+        if sessions.len() < 2 {
+            return Err(ConfigError::CouldNotInitSender);
+        }
+
+        let session = sessions.first().unwrap();
+        let sender = session.group.get_sender();
+        let recipients = session.group.get_recipients();
+
+        Ok((sender, recipients))
     }
 }

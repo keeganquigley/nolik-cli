@@ -83,7 +83,6 @@ impl EncryptedSession {
         let encrypted_nonce = &self.nonce;
         let secret_nonce = match encrypted_nonce.decrypt(&public_nonce, &pk, &sk) {
             Ok(res) => res,
-
             Err(e) => return Err(e),
         };
 
