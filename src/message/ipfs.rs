@@ -4,11 +4,12 @@ use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
 use async_recursion::async_recursion;
 use sodiumoxide::crypto::box_::PublicKey;
 use crate::{Batch, ConfigFile, FlagKey, Input, NodeError, NodeEvent, Wallet};
-use crate::node::extrinsics::send_message;
+// use crate::node::extrinsics::send_message;
 use crate::message::errors::MessageError;
 use crate::node::events::SendMessage;
 use colored::Colorize;
 use crate::cli::errors::InputError;
+use crate::node::extrinsics::NolikSendMessage;
 
 
 pub struct IpfsInput {
@@ -84,7 +85,7 @@ impl IpfsFile {
     }
 
 
-    pub async fn send(&self, sender: &PublicKey, recipient: &PublicKey, wallet: &Wallet) -> Result<(), NodeError> {
+    pub async fn send(&self, config_file: &ConfigFile, sender: &PublicKey, recipient: &PublicKey, wallet: &Wallet) -> Result<(), NodeError> {
 
         let pair = match wallet.get_pair() {
             Ok(pair) => pair,
@@ -94,13 +95,19 @@ impl IpfsFile {
             }
         };
 
-        let extrinsic_hash = match send_message(&pair, &sender, &recipient, &self.0).await {
-            Ok(hash) => hash,
+        let extrinsic = match NolikSendMessage::new(&config_file, &pair, &sender, &recipient, &self.0) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNotSubmitEvent),
+        };
+
+        let extrinsic_hash = match extrinsic.hash::<NolikSendMessage>().await {
+            Ok(res) => res,
             Err(e) => return Err(e),
         };
 
+
         let event = SendMessage;
-        match event.submit(&extrinsic_hash).await {
+        match event.submit(&config_file, &extrinsic_hash).await {
             Ok(_res) => {
                 let to = bs58::encode(recipient).into_string();
                 let res = format!("Message has been sent to \"{}\"", to);

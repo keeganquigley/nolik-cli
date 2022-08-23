@@ -1,8 +1,9 @@
 use crate::{Account, ConfigFile, FlagKey, Input, NodeError, Wallet};
 use crate::cli::errors::InputError;
-use crate::node::extrinsics::add_owner;
+// use crate::node::extrinsics::add_owner;
 use crate::node::events::{AddOwnerEvent, NodeEvent};
 use colored::Colorize;
+use crate::node::extrinsics::NolikAddOwner;
 
 pub struct Owner {
     pub wallet: Wallet,
@@ -45,7 +46,7 @@ impl Owner {
     }
 
 
-    pub async fn add(&self) -> Result<(), NodeError> {
+    pub async fn add(&self, config_file: &ConfigFile) -> Result<(), NodeError> {
         let pair = match self.wallet.get_pair() {
             Ok(pair) => pair,
             Err(e) => {
@@ -54,8 +55,13 @@ impl Owner {
             }
         };
 
-        let extrinsic_hash = match add_owner(&pair, &self.account.public).await {
-            Ok(hash) => hash,
+        let extrinsic = match NolikAddOwner::new(&config_file, &pair, &self.account.public) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNotSubmitEvent),
+        };
+
+        let extrinsic_hash = match extrinsic.hash::<NolikAddOwner>().await {
+            Ok(res) => res,
             Err(e) => {
                 eprintln!("Error: {}", e);
                 return Err(e);
@@ -63,7 +69,7 @@ impl Owner {
         };
 
         let event = AddOwnerEvent;
-        match event.submit(&extrinsic_hash).await {
+        match event.submit(config_file, &extrinsic_hash).await {
             Ok(_res) => {
                 let res = format!("Owner has been successfully added to \"{}\"", self.account.alias);
                 println!("{}", res.bright_green());

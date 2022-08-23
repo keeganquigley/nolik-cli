@@ -9,10 +9,11 @@ mod whitelist {
     use nolik_cli::cli::input::Input;
     use nolik_cli::node::errors::NodeError;
     use nolik_cli::node::events::{BalanceTransferEvent, NodeEvent};
-    use nolik_cli::node::extrinsics::balance_transfer;
+    use nolik_cli::node::extrinsics::BalancesTransfer;
     use nolik_cli::owner::Owner;
     use nolik_cli::wallet::{Wallet, WalletInput};
     use nolik_cli::whitelist::Whitelist;
+
 
     async fn create_new_config_file() -> ConfigFile {
 
@@ -89,14 +90,17 @@ mod whitelist {
         let sender = AccountKeyring::Alice;
 
         let recipient = AccountId32::from(wallet_a.public);
-        let extrinsic_hash = balance_transfer(sender, &recipient).await.unwrap();
+
+        let extrinsic = BalancesTransfer::new(&config_file, &sender, &recipient).unwrap();
+        let extrinsic_hash = extrinsic.hash::<BalancesTransfer>().await.unwrap();
         let event = BalanceTransferEvent;
-        event.submit(&extrinsic_hash).await.unwrap();
+        event.submit(&config_file, &extrinsic_hash).await.unwrap();
 
         let recipient = AccountId32::from(wallet_b.public);
-        let extrinsic_hash = balance_transfer(sender, &recipient).await.unwrap();
+        let extrinsic = BalancesTransfer::new(&config_file, &sender, &recipient).unwrap();
+        let extrinsic_hash = extrinsic.hash::<BalancesTransfer>().await.unwrap();
         let event = BalanceTransferEvent;
-        event.submit(&extrinsic_hash).await.unwrap();
+        event.submit(&config_file, &extrinsic_hash).await.unwrap();
 
         config_file
     }
@@ -123,7 +127,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -141,7 +145,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = whitelist.update().await.is_ok();
+        let res = whitelist.update(&config_file).await.is_ok();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -171,7 +175,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -189,7 +193,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = whitelist.update().await.unwrap_err();
+        let res = whitelist.update(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -222,7 +226,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -240,7 +244,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = whitelist.update().await.unwrap_err();
+        let res = whitelist.update(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -272,7 +276,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -290,7 +294,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.update().await.unwrap();
+        owner.update(&config_file).await.unwrap();
 
 
         let arr = [
@@ -308,7 +312,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = whitelist.update().await.unwrap_err();
+        let res = whitelist.update(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -340,7 +344,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -358,7 +362,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let blacklist = Blacklist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        blacklist.update().await.unwrap();
+        blacklist.update(&config_file).await.unwrap();
 
 
         let arr = [
@@ -376,7 +380,7 @@ mod whitelist {
         let input = Input::new(args).unwrap();
 
         let whitelist = Whitelist::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = whitelist.update().await.unwrap_err();
+        let res = whitelist.update(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 

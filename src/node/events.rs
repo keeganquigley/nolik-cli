@@ -5,7 +5,7 @@ use subxt::Phase::ApplyExtrinsic;
 use parity_scale_codec::Decode;
 use crate::cli::constants::pallet_errors;
 use crate::node::calls::{call_extrinsic, get_block};
-use crate::NodeError;
+use crate::{Config, ConfigFile, NodeError, Socket};
 use async_trait::async_trait;
 use futures::StreamExt;
 
@@ -19,8 +19,17 @@ pub trait NodeEvent {
     type S: Event;
     type F: Event;
 
-    async fn submit(&self, extrinsic_hash: &String) -> Result<(), NodeError> {
+    async fn submit(&self, config_file: &ConfigFile, extrinsic_hash: &String) -> Result<(), NodeError> {
+
+        let config = match Config::new(&config_file) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNotSubmitEvent),
+        };
+
+        let node_url = String::from(config.data.url);
+
         let api = ClientBuilder::new()
+            .set_url(&node_url)
             .build()
             .await
             .unwrap()
@@ -28,7 +37,12 @@ pub trait NodeEvent {
 
         let mut event_sub = api.events().subscribe().await.unwrap();
 
-        let block_hash = match call_extrinsic(&extrinsic_hash).await {
+        let mut socket = match Socket::new(&node_url) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+        let block_hash = match call_extrinsic(&mut socket, &extrinsic_hash).await {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error {}", e);
@@ -36,7 +50,7 @@ pub trait NodeEvent {
             },
         };
 
-        let block = match get_block(&block_hash).await {
+        let block = match get_block(&mut socket, &block_hash).await {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error {}", e);

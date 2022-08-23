@@ -2,8 +2,9 @@ use sodiumoxide::crypto::box_::PublicKey;
 use crate::{Account, ConfigFile, FlagKey, Input, NodeError, NodeEvent, Wallet};
 use crate::cli::errors::InputError;
 use crate::node::events::AddToWhitelist;
-use crate::node::extrinsics::add_to_whitelist;
+// use crate::node::extrinsics::add_to_whitelist;
 use colored::Colorize;
+use crate::node::extrinsics::NolikAddToWhitelist;
 
 
 pub struct Whitelist {
@@ -65,7 +66,7 @@ impl Whitelist {
         })
     }
 
-    pub async fn update(&self) -> Result<(), NodeError> {
+    pub async fn update(&self, config_file: &ConfigFile) -> Result<(), NodeError> {
         let pair = match self.wallet.get_pair() {
             Ok(pair) => pair,
             Err(e) => {
@@ -74,13 +75,21 @@ impl Whitelist {
             }
         };
 
-        let extrinsic_hash = match add_to_whitelist(&pair, &self.account.public, &self.new_address).await {
-            Ok(hash) => hash,
-            Err(e) => return Err(e),
+        let extrinsic = match NolikAddToWhitelist::new(&config_file, &pair, &self.account.public, &self.new_address) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNotSubmitEvent),
+        };
+
+        let extrinsic_hash = match extrinsic.hash::<NolikAddToWhitelist>().await {
+            Ok(res) => res,
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(e);
+            }
         };
 
         let event = AddToWhitelist;
-        match event.submit(&extrinsic_hash).await {
+        match event.submit(config_file, &extrinsic_hash).await {
             Ok(_res) => {
                 let new_address = bs58::encode(self.new_address).into_string();
                 let res = format!("Whitelist for \"{}\" has been successfully updated. Added new address: \"{}\"", self.account.alias, new_address);

@@ -360,12 +360,7 @@ pub async fn get_runtime_metadata(socket: &mut Socket) -> Result<String, NodeErr
 }
 
 
-pub async fn get_block(block_hash: &String) -> Result<ChainGetBlockResult, NodeError> {
-
-    let mut socket = match Socket::new() {
-        Ok(res) => res,
-        Err(e) => return Err(e),
-    };
+pub async fn get_block(socket: &mut Socket, block_hash: &String) -> Result<ChainGetBlockResult, NodeError> {
 
     let req = NodeRequest {
         id: 1,
@@ -374,11 +369,11 @@ pub async fn get_block(block_hash: &String) -> Result<ChainGetBlockResult, NodeE
         params: vec![block_hash.to_string()],
     };
 
-    if let Err(e) = SocketMessage::send(&mut socket, req) {
+    if let Err(e) = SocketMessage::send(socket, req) {
         return Err(e);
     }
 
-    let msg = match SocketMessage::read(&mut socket) {
+    let msg = match SocketMessage::read(socket) {
         Ok(res) => res,
         Err(e) => return Err(e),
     };
@@ -395,12 +390,7 @@ pub async fn get_block(block_hash: &String) -> Result<ChainGetBlockResult, NodeE
 }
 
 
-pub async fn call_extrinsic(call_hex: &String) -> Result<String, NodeError> {
-
-    let mut socket = match Socket::new() {
-        Ok(res) => res,
-        Err(e) => return Err(e),
-    };
+pub async fn call_extrinsic(socket: &mut Socket, call_hex: &String) -> Result<String, NodeError> {
 
     let req = NodeRequest {
         id: 1,
@@ -411,13 +401,13 @@ pub async fn call_extrinsic(call_hex: &String) -> Result<String, NodeError> {
 
     println!("Sending request...");
 
-    if let Err(e) = SocketMessage::send(&mut socket, req) {
+    if let Err(e) = SocketMessage::send(socket, req) {
         return Err(e);
     }
 
     loop {
 
-        let msg = match SocketMessage::read(&mut socket) {
+        let msg = match SocketMessage::read(socket) {
             Ok(res) => res,
             Err(e) => return Err(e),
         };
@@ -455,43 +445,5 @@ pub async fn call_extrinsic(call_hex: &String) -> Result<String, NodeError> {
                 return Err(NodeError::CouldNotCallExtrinsic)
             }
         }
-    }
-}
-
-
-pub async fn get_event(block_hash: String) -> Result<String, NodeError> {
-
-    let mut socket = match Socket::new() {
-        Ok(res) => res,
-        Err(e) => return Err(e),
-    };
-
-    let req = NodeRequest {
-        id: 1,
-        jsonrpc: "2.0".to_string(),
-        method: "state_getStorageAt".to_string(),
-        params: vec!["0x26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7".to_string(), block_hash],
-    };
-
-    if let Err(e) = SocketMessage::send(&mut socket, req) {
-        return Err(e);
-    }
-
-    loop {
-
-        let msg = match SocketMessage::read(&mut socket) {
-            Ok(res) => res,
-            Err(e) => return Err(e),
-        };
-
-        let res: StateGetStorageAtSuccess = match serde_json::from_str(&msg) {
-            Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(NodeError::CouldNotCallExtrinsic);
-            }
-        };
-
-        return Ok(res.result);
     }
 }

@@ -8,7 +8,7 @@ mod owner {
     use nolik_cli::cli::input::Input;
     use nolik_cli::node::errors::NodeError;
     use nolik_cli::node::events::{BalanceTransferEvent, NodeEvent};
-    use nolik_cli::node::extrinsics::balance_transfer;
+    use nolik_cli::node::extrinsics::BalancesTransfer;
     use nolik_cli::owner::Owner;
     use nolik_cli::wallet::{Wallet, WalletInput};
 
@@ -70,14 +70,16 @@ mod owner {
         let sender = AccountKeyring::Alice;
 
         let recipient = AccountId32::from(wallet_a.public);
-        let extrinsic_hash = balance_transfer(sender, &recipient).await.unwrap();
+        let extrinsic = BalancesTransfer::new(&config_file, &sender, &recipient).unwrap();
+        let extrinsic_hash = extrinsic.hash::<BalancesTransfer>().await.unwrap();
         let event = BalanceTransferEvent;
-        event.submit(&extrinsic_hash).await.unwrap();
+        event.submit(&config_file, &extrinsic_hash).await.unwrap();
 
         let recipient = AccountId32::from(wallet_b.public);
-        let extrinsic_hash = balance_transfer(sender, &recipient).await.unwrap();
+        let extrinsic = BalancesTransfer::new(&config_file, &sender, &recipient).unwrap();
+        let extrinsic_hash = extrinsic.hash::<BalancesTransfer>().await.unwrap();
         let event = BalanceTransferEvent;
-        event.submit(&extrinsic_hash).await.unwrap();
+        event.submit(&config_file, &extrinsic_hash).await.unwrap();
 
         config_file
     }
@@ -103,7 +105,7 @@ mod owner {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.add().await.is_ok();
+        let res = owner.add(&config_file).await.is_ok();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -136,7 +138,7 @@ mod owner {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -152,7 +154,7 @@ mod owner {
         let input = Input::new(args).unwrap();
 
         let owner_bob = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner_bob.add().await.unwrap_err();
+        let res = owner_bob.add(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 
@@ -184,7 +186,7 @@ mod owner {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        owner.add().await.unwrap();
+        owner.add(&config_file).await.unwrap();
 
 
         let arr = [
@@ -200,7 +202,7 @@ mod owner {
         let input = Input::new(args).unwrap();
 
         let owner = Owner::new(&input, &config_file, Some(String::from("pass"))).unwrap();
-        let res = owner.add().await.unwrap_err();
+        let res = owner.add(&config_file).await.unwrap_err();
 
         fs::remove_file(config_file.path).unwrap();
 

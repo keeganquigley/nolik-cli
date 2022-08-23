@@ -10,7 +10,7 @@ mod wallet {
     use nolik_cli::cli::errors::ConfigError;
     use nolik_cli::cli::input::Input;
     use nolik_cli::node::events::{BalanceTransferEvent, NodeEvent};
-    use nolik_cli::node::extrinsics::balance_transfer;
+    use nolik_cli::node::extrinsics::BalancesTransfer;
 
     #[test]
     fn create_new_wallet() {
@@ -287,12 +287,11 @@ mod wallet {
 
         let wallet = Wallet::get(&config_file, wallet_key, password).unwrap();
 
-        let sender = AccountKeyring::Alice;
-        let recipient = AccountId32::from(wallet.public);
+        let extrinsic = BalancesTransfer::new(&config_file, &AccountKeyring::Alice, &AccountId32::from(wallet.public)).unwrap();
+        let hash = extrinsic.hash::<BalancesTransfer>().await.unwrap();
 
-        let extrinsic_hash = balance_transfer(sender, &recipient).await.unwrap();
         let event = BalanceTransferEvent;
-        let res = event.submit(&extrinsic_hash).await.is_ok();
+        let res = event.submit(&config_file, &hash).await.is_ok();
 
         fs::remove_file(config_file.path).unwrap();
 

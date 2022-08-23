@@ -150,7 +150,7 @@ impl Batch {
             .collect();
 
 
-        if sessions.len() < 2 {
+        if sessions.len() == 0 {
             return Err(ConfigError::CouldNotInitSender);
         }
 

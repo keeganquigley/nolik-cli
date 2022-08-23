@@ -50,6 +50,7 @@ impl ConfigFile {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigData {
+    pub url: String,
     #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
     pub wallets: Vec<WalletOutput>,
 
@@ -70,6 +71,7 @@ impl Config {
             return Ok(Config {
                 file: config_file.to_owned(),
                 data: ConfigData {
+                    url: String::from("ws://127.0.0.1:9944"),
                     wallets: vec![],
                     accounts: vec![],
                 }
@@ -93,7 +95,6 @@ impl Config {
             },
         }
     }
-
 
     pub fn save(&self) -> Result<(), ConfigError> {
         if let false = self.file.dir.exists() {

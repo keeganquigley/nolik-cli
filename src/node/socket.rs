@@ -9,8 +9,8 @@ pub struct Socket {
 }
 
 impl Socket {
-    pub fn new() -> Result<Socket, NodeError> {
-        let (socket, _response) = match connect("ws://127.0.0.1:9944") {
+    pub fn new(node_url: &String) -> Result<Socket, NodeError> {
+        let (socket, _response) = match connect(node_url) {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error: {:?}", e);

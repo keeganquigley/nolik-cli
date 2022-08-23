@@ -30,7 +30,8 @@ use crate::message::batch::Batch;
 use crate::message::ipfs::IpfsInput;
 use crate::message::utils::{base64_to_nonce, base64_to_public_key};
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
-use crate::node::extrinsics::balance_transfer;
+use crate::node::extrinsics::BalancesTransfer;
+// use crate::node::extrinsics::balance_transfer;
 use crate::whitelist::Whitelist;
 
 
@@ -91,7 +92,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            match owner.add().await {
+            match owner.add(&config_file).await {
                 Ok(_res) => {},
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }
@@ -109,7 +110,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            match whitelist.update().await {
+            match whitelist.update(&config_file).await {
                 Ok(_res) => {},
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }
@@ -127,7 +128,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            match blacklist.update().await {
+            match blacklist.update(&config_file).await {
                 Ok(_res) => {},
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             }
@@ -175,7 +176,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
             for pk in recipients {
-                if let Err(e) = ipfs_input.ipfs_file.send(&sender, &pk, &ipfs_input.wallet).await {
+                if let Err(e) = ipfs_input.ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await {
                     return Err(Box::<dyn Error>::from(e));
                 }
             }
@@ -205,13 +206,19 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             let sender = AccountKeyring::Alice;
             let recipient = AccountId32::from(wallet.public);
 
-            let extrinsic_hash = match balance_transfer(sender, &recipient).await {
-                Ok(hash) => hash,
+
+            let extrinsic = match BalancesTransfer::new(&config_file, &sender, &recipient) {
+                Ok(res) => res,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let extrinsic_hash = match extrinsic.hash::<BalancesTransfer>().await {
+                Ok(res) => res,
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
             let event = BalanceTransferEvent;
-            match event.submit(&extrinsic_hash).await {
+            match event.submit(&config_file, &extrinsic_hash).await {
                 Ok(_res) => {
                     let res = format!("Coins have been transferred to {:?}", recipient);
                     println!("{}", res.bright_green());
