@@ -7,6 +7,7 @@ use crate::cli::input::FlagKey;
 use crate::{Config, ConfigFile, Input};
 use crate::message::errors::MessageError;
 use crate::message::utils::{base58_to_public_key, base58_to_secret_key, base58_to_seed};
+use colored::Colorize;
 
 
 pub struct AccountInput {
@@ -45,6 +46,7 @@ pub struct Account {
     pub public: PublicKey,
     pub secret: SecretKey,
     pub seed: Seed,
+    pub index: usize,
 }
 
 
@@ -76,7 +78,8 @@ impl Account {
             public: account.0,
             secret: account.1,
             seed: account.2,
-            alias: input.alias
+            alias: input.alias,
+            index: 0,
         })
     }
 
@@ -108,7 +111,14 @@ impl Account {
 
 
         config.data.accounts.push(account_output);
-        config.save()
+        match config.save() {
+            Ok(_) => {
+                let res = format!("Account \"{}\" has been created", account.alias);
+                println!("{}", res.bright_green());
+                Ok(())
+            },
+            Err(e) => return Err(e),
+        }
     }
 
 
@@ -138,14 +148,37 @@ impl Account {
 
         Ok(account)
     }
+
+
+    pub fn increment(config_file: &ConfigFile, key: String) -> Result<(), ConfigError> {
+        let mut config = match Config::new(&config_file) {
+            Ok(config) => config,
+            Err(e) => return Err(e),
+        };
+
+        match config.data.accounts.iter_mut().find(|ao| vec![&ao.alias, &ao.public].contains(&&key)) {
+            Some(ao) => {
+                ao.index += 1;
+            },
+            None => {
+                return Err(ConfigError::CouldNotGetAccount);
+            }
+        }
+
+        match config.save() {
+            Ok(_) => Ok(()),
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccountOutput {
+    pub alias: String,
     pub public: String,
     pub secret: String,
     pub seed: String,
-    pub alias: String,
+    pub index: usize,
 }
 
 impl AccountOutput {
@@ -155,6 +188,7 @@ impl AccountOutput {
             public: bs58::encode(&account.public).into_string(),
             secret: bs58::encode(&account.secret).into_string(),
             seed: bs58::encode(&account.seed).into_string(),
+            index:  account.index,
         }
     }
 
@@ -179,6 +213,7 @@ impl AccountOutput {
             public,
             secret,
             seed,
+            index: account_output.index,
         })
     }
 }

@@ -1,6 +1,5 @@
 use crate::{Account, ConfigFile, FlagKey, Input, NodeError, Wallet};
 use crate::cli::errors::InputError;
-// use crate::node::extrinsics::add_owner;
 use crate::node::events::{AddOwnerEvent, NodeEvent};
 use colored::Colorize;
 use crate::node::extrinsics::NolikAddOwner;
