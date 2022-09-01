@@ -6,7 +6,7 @@ use crate::message::errors::MessageError;
 use crate::message::utils::base64_to_vec;
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Entry {
     pub key: String,
     pub value: String,

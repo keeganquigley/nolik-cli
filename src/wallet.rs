@@ -6,6 +6,7 @@ use crate::cli::errors::{ConfigError, InputError};
 use crate::cli::input::FlagKey;
 use crate::{Config, ConfigFile, Input};
 use clearscreen;
+use colored::Colorize;
 
 
 #[derive(Debug)]
@@ -139,7 +140,14 @@ impl Wallet {
         }
 
         config.data.wallets.push(WalletOutput::new(wallet));
-        config.save()
+        match config.save() {
+            Ok(_) => {
+                let res = format!("Wallet \"{}\" has been created", wallet.alias);
+                println!("{}", res.bright_green());
+                Ok(())
+            },
+            Err(e) => return Err(e),
+        }
     }
 
 
@@ -183,7 +191,7 @@ impl Wallet {
             Err(_e) => return Err(InputError::PasswordInputError),
         };
 
-        let password_again = match rpassword::prompt_password("Your wallet password") {
+        let password_again = match rpassword::prompt_password("Your wallet password again") {
             Ok(input) => input,
             Err(_e) => return Err(InputError::PasswordInputError),
         };

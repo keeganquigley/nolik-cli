@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod account {
 
-    use nolik_cli::account::{Account, AccountInput};
+    use nolik_cli::account::{Account, AccountInput, AccountOutput};
     use std::fs;
     use std::io::prelude::*;
     use nolik_cli::cli::config::{Config, ConfigData, ConfigFile};
@@ -43,6 +43,8 @@ mod account {
         );
     }
 
+
+
     #[test]
     fn import_new_account() {
         let arr = [
@@ -75,6 +77,92 @@ mod account {
 
         assert_eq!(
             new_account_len,
+            1,
+        );
+    }
+
+    #[test]
+    fn new_account_index_is_0() {
+        let arr = [
+            "add",
+            "account",
+            "--alias",
+            "alice",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap();
+
+        let config_file: ConfigFile = ConfigFile::temp();
+        Account::add(&config_file, &account).unwrap();
+
+        let contents = fs::read_to_string(&config_file.path).unwrap();
+        let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
+
+        let new_account: Vec<&AccountOutput> = toml_data.accounts
+            .iter()
+            .filter(|account| account.alias == "alice".to_string())
+            .collect();
+
+        fs::remove_file(config_file.path).unwrap();
+
+        assert_eq!(
+            new_account.first().unwrap().index,
+            0,
+        );
+    }
+
+
+    #[test]
+    fn increment_account_index() {
+        let arr = [
+            "add",
+            "account",
+            "--alias",
+            "alice",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+
+        let account_input = AccountInput::new(input).unwrap();
+        let account = Account::new(account_input).unwrap();
+
+        let config_file: ConfigFile = ConfigFile::temp();
+        Account::add(&config_file, &account).unwrap();
+
+
+        let contents = fs::read_to_string(&config_file.path).unwrap();
+        let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
+
+        let new_account: Vec<&AccountOutput> = toml_data.accounts
+            .iter()
+            .filter(|account| account.alias == "alice".to_string())
+            .collect();
+
+
+        assert_eq!(
+            new_account.first().unwrap().index,
+            0,
+        );
+
+        Account::increment(&config_file, String::from("alice")).unwrap();
+        let contents = fs::read_to_string(&config_file.path).unwrap();
+        let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
+
+        let new_account: Vec<&AccountOutput> = toml_data.accounts
+            .iter()
+            .filter(|account| account.alias == "alice".to_string())
+            .collect();
+
+
+        fs::remove_file(config_file.path).unwrap();
+
+        assert_eq!(
+            new_account.first().unwrap().index,
             1,
         );
     }

@@ -10,14 +10,15 @@ mod message {
     use sodiumoxide::crypto::box_;
     use sp_core::crypto::AccountId32;
     use sp_keyring::AccountKeyring;
-    use nolik_cli::account::{Account, AccountInput};
+    use nolik_cli::account::{Account, AccountInput, AccountOutput};
     use nolik_cli::blacklist::Blacklist;
     use nolik_cli::cli::config::{Config, ConfigFile};
     use nolik_cli::cli::input::Input;
     use nolik_cli::message::input::BatchInput;
     use nolik_cli::cli::errors::{ConfigError, InputError};
     use nolik_cli::message::batch::Batch;
-    use nolik_cli::message::ipfs::IpfsInput;
+    use nolik_cli::message::index::{Index, IndexFile, IndexMessage};
+    use nolik_cli::message::ipfs::{IpfsFile, IpfsInput};
     use nolik_cli::message::message::EncryptedMessage;
     use nolik_cli::message::session::{Session};
     use nolik_cli::message::utils::{base64_to_nonce, base64_to_public_key};
@@ -893,6 +894,7 @@ mod message {
     }
 
 
+
     #[async_std::test]
     async fn send_if_could_not_init_sender() {
 
@@ -950,5 +952,366 @@ mod message {
         assert_eq!(res, ConfigError::CouldNotInitSender);
 
         fs::remove_file(config_file.path).unwrap();
+    }
+
+
+    #[async_std::test]
+    async fn incrementing_message_count_on_chain() {
+        let config_file = init_sending().await;
+
+        let alice = Account::get(&config_file, String::from("alice")).unwrap();
+        let bob = Account::get(&config_file, String::from("bob")).unwrap();
+
+        let arr = [
+            "compose",
+            "message",
+            "--sender",
+            "alice",
+            "--recipient",
+            format!("{}", bs58::encode(&bob.public).into_string()).as_str(),
+            "--key",
+            "subject",
+            "--value",
+            "hello",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let mut input = Input::new(args).unwrap();
+
+
+        let bi = BatchInput::new(&mut input, &config_file).unwrap();
+
+        let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+
+        let arr = [
+            "send",
+            "message",
+            "--hash",
+            format!("{}", ipfs_file.0).as_str(),
+            "--wallet",
+            "wallet_a",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+        let ipfs_input = IpfsInput::new(&config_file, &input, Some(String::from("pass"))).unwrap();
+
+        let batch = ipfs_input.ipfs_file.get().await.unwrap();
+        let (sender, recipients) = batch.parties(&config_file).unwrap();
+
+        for pk in recipients {
+            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
+        }
+
+        let nonce_alice_a = alice.index(&config_file).await.unwrap();
+        assert_eq!(nonce_alice_a.is_some(), true);
+
+        let nonce_bob_a = bob.index(&config_file).await.unwrap();
+        assert_eq!(nonce_bob_a.is_some(), true);
+
+
+        let arr = [
+            "compose",
+            "message",
+            "--sender",
+            "alice",
+            "--recipient",
+            format!("{}", bs58::encode(&bob.public).into_string()).as_str(),
+            "--key",
+            "subject",
+            "--value",
+            "hello",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let mut input = Input::new(args).unwrap();
+
+
+        let bi = BatchInput::new(&mut input, &config_file).unwrap();
+
+        let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+
+        let arr = [
+            "send",
+            "message",
+            "--hash",
+            format!("{}", ipfs_file.0).as_str(),
+            "--wallet",
+            "wallet_a",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+        let ipfs_input = IpfsInput::new(&config_file, &input, Some(String::from("pass"))).unwrap();
+
+        let batch = ipfs_input.ipfs_file.get().await.unwrap();
+        let (sender, recipients) = batch.parties(&config_file).unwrap();
+
+        for pk in recipients {
+            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
+        }
+
+        let nonce_alice_b = alice.index(&config_file).await.unwrap();
+        let nonce_bob_b = bob.index(&config_file).await.unwrap();
+
+        fs::remove_file(config_file.path).unwrap();
+
+        assert_eq!(nonce_alice_b.unwrap(), nonce_alice_a.unwrap() + 1);
+        assert_eq!(nonce_bob_b.unwrap(), nonce_bob_a.unwrap() + 1);
+    }
+
+
+    #[async_std::test]
+    async fn no_account_record_on_chain() {
+        let config_file = init_sending().await;
+
+        let alice = Account::get(&config_file, String::from("alice")).unwrap();
+
+        let nonce = alice.index(&config_file).await.unwrap();
+        assert_eq!(nonce.is_none(), true);
+
+        fs::remove_file(config_file.path).unwrap();
+    }
+
+
+    #[async_std::test]
+    async fn check_message_ipfs_hash() {
+        let config_file = init_sending().await;
+
+        let alice = Account::get(&config_file, String::from("alice")).unwrap();
+        let bob = Account::get(&config_file, String::from("bob")).unwrap();
+
+        let arr = [
+            "compose",
+            "message",
+            "--sender",
+            "alice",
+            "--recipient",
+            format!("{}", bs58::encode(&bob.public).into_string()).as_str(),
+            "--key",
+            "subject",
+            "--value",
+            "hello",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let mut input = Input::new(args).unwrap();
+
+
+        let bi = BatchInput::new(&mut input, &config_file).unwrap();
+
+        let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+
+        let arr = [
+            "send",
+            "message",
+            "--hash",
+            format!("{}", ipfs_file.0).as_str(),
+            "--wallet",
+            "wallet_a",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+        let ipfs_input = IpfsInput::new(&config_file, &input, Some(String::from("pass"))).unwrap();
+
+        let batch = ipfs_input.ipfs_file.get().await.unwrap();
+        let (sender, recipients) = batch.parties(&config_file).unwrap();
+
+        for pk in recipients {
+            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
+        }
+
+        let nonce_alice = alice.index(&config_file).await.unwrap().unwrap();
+        let nonce_bob = bob.index(&config_file).await.unwrap().unwrap();
+
+        let message_alice = alice.message(&config_file, nonce_alice).await.unwrap().unwrap();
+        let message_bob = alice.message(&config_file, nonce_bob).await.unwrap().unwrap();
+
+        fs::remove_file(config_file.path).unwrap();
+
+        assert_eq!(message_alice, message_bob);
+        assert_eq!(message_alice, ipfs_file.0);
+    }
+
+
+    #[async_std::test]
+    async fn get_decrypt_and_save_ipfs_data() {
+        let config_file = init_sending().await;
+        let config = Config::new(&config_file).unwrap();
+
+        let alice = Account::get(&config_file, String::from("alice")).unwrap();
+        let bob = Account::get(&config_file, String::from("bob")).unwrap();
+
+        let arr = [
+            "compose",
+            "message",
+            "--sender",
+            "alice",
+            "--recipient",
+            format!("{}", bs58::encode(&bob.public).into_string()).as_str(),
+            "--key",
+            "subject",
+            "--value",
+            "hello",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let mut input = Input::new(args).unwrap();
+
+
+        let bi = BatchInput::new(&mut input, &config_file).unwrap();
+
+        let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+
+        let arr = [
+            "send",
+            "message",
+            "--hash",
+            format!("{}", ipfs_file.0).as_str(),
+            "--wallet",
+            "wallet_a",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+        let ipfs_input = IpfsInput::new(&config_file, &input, Some(String::from("pass"))).unwrap();
+
+        let batch = ipfs_input.ipfs_file.get().await.unwrap();
+        let (sender, recipients) = batch.parties(&config_file).unwrap();
+
+        for pk in &recipients {
+            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
+        }
+
+
+        let arr = [
+            "compose",
+            "message",
+            "--sender",
+            "alice",
+            "--recipient",
+            format!("{}", bs58::encode(&bob.public).into_string()).as_str(),
+            "--key",
+            "subject",
+            "--value",
+            "world",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let mut input = Input::new(args).unwrap();
+
+
+        let bi = BatchInput::new(&mut input, &config_file).unwrap();
+
+        // let secret_nonce = box_::gen_nonce();
+        let batch = Batch::new(&bi, &secret_nonce).unwrap();
+        let ipfs_file = batch.save().await.unwrap();
+
+
+        let arr = [
+            "send",
+            "message",
+            "--hash",
+            format!("{}", ipfs_file.0).as_str(),
+            "--wallet",
+            "wallet_a",
+        ].map(|el| el.to_string());
+
+        let args = arr.iter();
+        let input = Input::new(args).unwrap();
+        let ipfs_input = IpfsInput::new(&config_file, &input, Some(String::from("pass"))).unwrap();
+
+        let batch = ipfs_input.ipfs_file.get().await.unwrap();
+        let (sender, recipients) = batch.parties(&config_file).unwrap();
+
+        for pk in &recipients {
+            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
+        }
+
+
+
+        let index_file = IndexFile::temp();
+        let mut index = Index::new(&index_file).unwrap();
+
+
+        let local_alice_indexes: Vec<AccountOutput> = config.data.accounts
+            .iter()
+            .filter(|ao| ao.public == bs58::encode(bi.sender.public).into_string())
+            .map(|el| el.clone())
+            .collect();
+
+        let local_alice_index = local_alice_indexes.first().unwrap().index;
+
+        let nonce_alice = alice.index(&config_file).await.unwrap().unwrap();
+        // let nonce_bob = bob.index(&config_file).await.unwrap().unwrap();
+
+        for i in local_alice_index..nonce_alice {
+
+            let message_alice = alice.message(&config_file, i + 1).await.unwrap().unwrap();
+
+            let ipfs_file = IpfsFile::new(message_alice.clone());
+            let ipfs_data = ipfs_file.get().await.unwrap();
+
+            let public_nonce = base64_to_nonce(&ipfs_data.nonce).unwrap();
+            let broker = base64_to_public_key(&ipfs_data.broker).unwrap();
+
+            let decrypted_sessions: Vec<Session> = ipfs_data.sessions
+                .iter()
+                .filter_map(|es| es.decrypt(&public_nonce, &broker, &bi.sender.secret).ok())
+                .collect();
+
+            let first_session = decrypted_sessions.first().unwrap();
+            let first_address = first_session.group.0.first().unwrap();
+
+            let recipients = first_session.group.get_recipients();
+            let any_recipient = recipients.first().unwrap();
+
+            let mut parties = blake2::Blake2s256::new();
+            Update::update(&mut parties, &first_address.0.as_ref());
+            Update::update(&mut parties, &any_recipient.as_ref());
+            let parties_hash = base64::encode(parties.finalize().to_vec());
+
+            let encrypted_messages = ipfs_data.messages
+                .iter()
+                .filter(|em| em.parties == parties_hash)
+                .collect::<Vec<&EncryptedMessage>>();
+
+            let encrypted_message = encrypted_messages.first().unwrap();
+            let decrypted_message = encrypted_message.decrypt(first_session, any_recipient, &bi.sender.secret).unwrap();
+
+            let new_index = i + 1;
+            let index_message = IndexMessage::new(&decrypted_message, &alice.public, new_index, ipfs_file.0);
+            index.data.messages.push(index_message);
+            index.save().unwrap();
+
+
+            let index_after_save = Index::new(&index_file).unwrap();
+            let saved_message = index_after_save.data.messages[i as usize].clone();
+
+
+            assert_eq!(new_index, saved_message.index);
+            assert_eq!(bs58::encode(secret_nonce).into_string(), saved_message.nonce);
+            assert_eq!(bs58::encode(bi.sender.public).into_string(), saved_message.from);
+            assert_eq!(bs58::encode(bi.recipients.first().unwrap()).into_string(), saved_message.to.first().unwrap().clone());
+            assert_eq!(match i { 0 => String::from("subject"), _ => String::from("subject")}, saved_message.entries.first().unwrap().key);
+            assert_eq!(match i { 0 => String::from("hello"), _ => String::from("world")}, saved_message.entries.first().unwrap().value);
+        }
+
+
+        fs::remove_file(config_file.path).unwrap();
+        fs::remove_file(index_file.path).unwrap();
     }
 }

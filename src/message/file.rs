@@ -4,7 +4,7 @@ use crate::message::encryption::Encryption;
 use crate::message::errors::MessageError;
 use crate::message::utils::base64_to_vec;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct File {
     pub binary: Vec<u8>,
     pub name: String,

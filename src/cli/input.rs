@@ -133,10 +133,7 @@ impl Input {
             .collect();
 
         match values.len() {
-            0 => {
-                // println!("Missing key: {:?}", flag_key);
-                return Err(InputError::NoSuchKey)
-            },
+            0 => return Err(InputError::NoSuchKey),
             _ => Ok(values)
         }
     }

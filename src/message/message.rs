@@ -1,6 +1,6 @@
 use blake2::Digest;
 use blake2::digest::Update;
-use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
+use sodiumoxide::crypto::box_::{PublicKey, SecretKey};
 use crate::message::entry::{Entry, EncryptedEntry};
 use serde_derive::{Serialize, Deserialize};
 use sodiumoxide::crypto::box_;
@@ -131,15 +131,4 @@ impl EncryptedMessage {
             files,
         })
     }
-}
-
-
-
-#[derive(Debug)]
-pub struct DecryptedMessage {
-    pub nonce: Nonce,
-    pub sender: PublicKey,
-    pub recipients: Vec<PublicKey>,
-    pub entries: Vec<Entry>,
-    pub files: Vec<File>,
 }

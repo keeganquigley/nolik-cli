@@ -4,9 +4,13 @@ use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::box_::{PublicKey, SecretKey, Seed};
 use crate::cli::errors::{ConfigError, InputError};
 use crate::cli::input::FlagKey;
-use crate::{Config, ConfigFile, Input};
+use crate::{Config, ConfigFile, Input, NodeError, Socket};
 use crate::message::errors::MessageError;
 use crate::message::utils::{base58_to_public_key, base58_to_secret_key, base58_to_seed};
+use colored::Colorize;
+use parity_scale_codec::Encode;
+use sp_core::{twox_128, twox_64};
+use crate::node::calls::get_storage_value;
 
 
 pub struct AccountInput {
@@ -45,6 +49,7 @@ pub struct Account {
     pub public: PublicKey,
     pub secret: SecretKey,
     pub seed: Seed,
+    pub index: u32,
 }
 
 
@@ -76,7 +81,8 @@ impl Account {
             public: account.0,
             secret: account.1,
             seed: account.2,
-            alias: input.alias
+            alias: input.alias,
+            index: 0,
         })
     }
 
@@ -108,7 +114,14 @@ impl Account {
 
 
         config.data.accounts.push(account_output);
-        config.save()
+        match config.save() {
+            Ok(_) => {
+                let res = format!("Account \"{}\" has been created", account.alias);
+                println!("{}", res.bright_green());
+                Ok(())
+            },
+            Err(e) => return Err(e),
+        }
     }
 
 
@@ -138,14 +151,164 @@ impl Account {
 
         Ok(account)
     }
+
+
+    pub fn increment(config_file: &ConfigFile, key: &String) -> Result<(), ConfigError> {
+        let mut config = match Config::new(&config_file) {
+            Ok(config) => config,
+            Err(e) => return Err(e),
+        };
+
+        match config.data.accounts.iter_mut().find(|ao| vec![&ao.alias, &ao.public].contains(&&key)) {
+            Some(ao) => {
+                ao.index += 1;
+            },
+            None => {
+                return Err(ConfigError::CouldNotGetAccount);
+            }
+        }
+
+        match config.save() {
+            Ok(_) => Ok(()),
+            Err(e) => return Err(e),
+        }
+    }
+
+
+    pub async fn index(&self, config_file: &ConfigFile) -> Result<Option<u32>, NodeError> {
+
+        let config = match Config::new(&config_file) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNotGetAccountNonce),
+        };
+
+        let node_url = String::from(config.data.url);
+
+        let address = bs58::encode(&self.public).into_string();
+
+        let module = twox_128("Nolik".as_bytes());
+        let module_hex = hex::encode(module);
+
+        let method = twox_128("MessagesCount".as_bytes());
+        let method_hex = hex::encode(method);
+
+        let bytes = address.as_bytes();
+        let twox_64 = twox_64(bytes.encode().as_ref());
+        let twox_64_concat: Vec<u8> = twox_64
+            .iter()
+            .chain::<&[u8]>(bytes.encode().as_ref())
+            .cloned()
+            .collect();
+        let twox_64_concat_hex = hex::encode(twox_64_concat);
+        let storage_key = format!("0x{}{}{}", module_hex, method_hex, twox_64_concat_hex);
+
+
+        let mut socket = match Socket::new(&node_url) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+        match get_storage_value(&mut socket, storage_key).await {
+            Ok(res) => {
+                match res {
+                    Some(res) => {
+                        let mut buf = [0; 4];
+                        let index = match hex::decode_to_slice(res.replace("0x", ""), &mut buf) {
+                            Ok(_) => u32::from_le_bytes(buf),
+                            Err(_) => return Err(NodeError::CouldNotGetAccountNonce),
+                        };
+
+                        Ok(Some(index))
+                    },
+                    None => Ok(None),
+                }
+            },
+            Err(e) => {
+                eprintln!("Error {}", e);
+                return Err(NodeError::CouldNotSubmitEvent);
+            },
+        }
+    }
+
+
+    pub async fn message(&self, config_file: &ConfigFile, index: u32) -> Result<Option<String>, NodeError> {
+        let config = match Config::new(&config_file) {
+            Ok(res) => res,
+            Err(_e) => return Err(NodeError::CouldNorGetAccountMessage),
+        };
+
+        let node_url = String::from(config.data.url);
+
+        let address = bs58::encode(&self.public).into_string();
+
+        let module = twox_128("Nolik".as_bytes());
+        let module_hex = hex::encode(module);
+
+        let method = twox_128("Messages".as_bytes());
+        let method_hex = hex::encode(method);
+
+        let address_bytes = address.as_bytes();
+        let address_twox_64 = twox_64(address_bytes.encode().as_ref());
+        let address_twox_64_concat: Vec<u8> = address_twox_64
+            .iter()
+            .chain::<&[u8]>(address_bytes.encode().as_ref())
+            .cloned()
+            .collect();
+        let address_twox_64_concat_hex = hex::encode(address_twox_64_concat);
+
+        let index_twox_64 = twox_64(index.encode().as_ref());
+        let index_twox_64_concat: Vec<u8> = index_twox_64
+            .iter()
+            .chain::<&[u8]>(index.encode().as_ref())
+            .cloned()
+            .collect();
+        let index_twox_64_concat_hex = hex::encode(index_twox_64_concat);
+
+        let storage_key = format!("0x{}{}{}{}", module_hex, method_hex, address_twox_64_concat_hex, index_twox_64_concat_hex);
+
+
+        let mut socket = match Socket::new(&node_url) {
+            Ok(res) => res,
+            Err(e) => return Err(e),
+        };
+
+        match get_storage_value(&mut socket, storage_key).await {
+            Ok(res) => {
+                match res {
+                    Some(res) => {
+
+                        let hash = match hex::decode(res.replace("0x", "")) {
+                            Ok(mut hash_bytes) => {
+                                hash_bytes.remove(0);
+                                match String::from_utf8(hash_bytes) {
+                                    Ok(hash) => hash,
+                                    Err(_) => return Err(NodeError::CouldNorGetAccountMessage),
+                                }
+                            },
+                            Err(_) => return Err(NodeError::CouldNorGetAccountMessage),
+                        };
+
+                        Ok(Some(hash))
+                    },
+                    None => Ok(None),
+                }
+            },
+            Err(e) => {
+                eprintln!("Error {}", e);
+                return Err(NodeError::CouldNotSubmitEvent);
+            },
+        }
+    }
 }
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AccountOutput {
+    pub alias: String,
     pub public: String,
     pub secret: String,
     pub seed: String,
-    pub alias: String,
+    pub index: u32,
 }
 
 impl AccountOutput {
@@ -155,6 +318,7 @@ impl AccountOutput {
             public: bs58::encode(&account.public).into_string(),
             secret: bs58::encode(&account.secret).into_string(),
             seed: bs58::encode(&account.seed).into_string(),
+            index:  account.index,
         }
     }
 
@@ -179,6 +343,7 @@ impl AccountOutput {
             public,
             secret,
             seed,
+            index: account_output.index,
         })
     }
 }

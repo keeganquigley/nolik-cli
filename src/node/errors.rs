@@ -10,6 +10,8 @@ pub enum NodeError {
     CouldNotGetMetadata,
     CouldNotSubmitEvent,
     CouldNotGetCallIndex,
+    CouldNotGetAccountIndex,
+    CouldNorGetAccountMessage,
 
     PalletAddressNotOwned,
     PalletAccountInOwners,
@@ -32,6 +34,9 @@ impl Display for NodeError {
             NodeError::CouldNotGetMetadata => f.write_str("Could not get node metadata"),
             NodeError::CouldNotSubmitEvent => f.write_str("Could not submit event"),
             NodeError::CouldNotGetCallIndex => f.write_str("Could not get call index"),
+            NodeError::CouldNotGetAccountIndex => f.write_str("Could not get the number of account messages"),
+            NodeError::CouldNorGetAccountMessage => f.write_str("Could not get the message"),
+
             NodeError::PalletAccountInOwners => f.write_str("Account is already owned by this wallet"),
             NodeError::PalletAddressNotOwned => f.write_str("Account is not owned by this wallet"),
             NodeError::PalletSameAddress => f.write_str("Trying to add your own address"),

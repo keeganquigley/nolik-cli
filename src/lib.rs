@@ -10,6 +10,8 @@ pub mod whitelist;
 pub mod blacklist;
 
 use std::error::Error;
+use blake2::Digest;
+use blake2::digest::Update;
 use colored::Colorize;
 use sodiumoxide::crypto::box_;
 
@@ -26,13 +28,18 @@ use sp_core::crypto::AccountId32;
 use sp_keyring::AccountKeyring;
 use crate::blacklist::Blacklist;
 use crate::cli::errors::ConfigError;
+
 use crate::message::batch::Batch;
-use crate::message::ipfs::IpfsInput;
+use crate::message::errors::MessageError;
+use crate::message::index::{Index, IndexFile, IndexMessage};
+use crate::message::ipfs::{IpfsFile, IpfsInput};
+use crate::message::message::EncryptedMessage;
+use crate::message::session::Session;
 use crate::message::utils::{base64_to_nonce, base64_to_public_key};
 use crate::node::events::{BalanceTransferEvent, NodeEvent};
 use crate::node::extrinsics::BalancesTransfer;
-// use crate::node::extrinsics::balance_transfer;
 use crate::whitelist::Whitelist;
+
 
 
 #[subxt::subxt(runtime_metadata_path = "metadata.scale")]
@@ -182,8 +189,124 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             }
         },
         Command::GetMessages => {
+            let config_file: ConfigFile = ConfigFile::new();
+
+            let account_key = match input.get_flag_value(FlagKey::Account) {
+                Ok(key) => key,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let account = match Account::get(&config_file, account_key) {
+                Ok(res) => res,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            let chain_index = match account.index(&config_file).await {
+                Ok(res) => match res {
+                    Some(index) => index,
+                    None => 0
+                },
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            if chain_index.eq(&account.index) {
+                println!("No new messages");
+            }
+
+            let index_file = IndexFile::new();
+            let mut index_messages = match Index::new(&index_file) {
+                Ok(res) => res,
+                Err(e) => return Err(Box::<dyn Error>::from(e)),
+            };
+
+            for i in account.index..chain_index {
+
+                let index = i + 1;
+                let ipfs_hash = match account.message(&config_file, index).await {
+                    Ok(res) => res,
+                    Err(e) => return Err(Box::<dyn Error>::from(e)),
+                };
+
+                if let Some(hash) = ipfs_hash {
+
+                    let ipfs_file = IpfsFile::new(hash);
+
+                    let ipfs_data = match ipfs_file.get().await {
+                        Ok(batch) => batch,
+                        Err(e) => return Err(Box::<dyn Error>::from(e)),
+                    };
 
 
+                    let public_nonce = match base64_to_nonce(&ipfs_data.nonce) {
+                        Ok(res) => res,
+                        Err(e) => return Err(Box::<dyn Error>::from(e)),
+                    };
+
+                    let broker = match base64_to_public_key(&ipfs_data.broker) {
+                        Ok(res) => res,
+                        Err(e) => return Err(Box::<dyn Error>::from(e)),
+                    };
+
+
+                    let decrypted_sessions: Vec<Session> = ipfs_data.sessions
+                        .iter()
+                        .filter_map(|es| es.decrypt(&public_nonce, &broker, &account.secret).ok())
+                        .collect();
+
+                    if decrypted_sessions.len() == 0 {
+                        return Err(Box::<dyn Error>::from(MessageError::DecryptionError));
+                    }
+
+
+                    let session = decrypted_sessions.first().unwrap();
+                    let sender = session.group.get_sender();
+                    let recipients = session.group.get_recipients();
+
+
+                    let position = session.group.0.iter().position(|el| el.0 == account.public);
+                    if let None = position {
+                        return Err(Box::<dyn Error>::from(MessageError::DecryptionError));
+                    }
+
+                    let pk = match position.unwrap() {
+                        0 => recipients.first().unwrap(),
+                        _ => &account.public,
+                    };
+
+                    let mut parties = blake2::Blake2s256::new();
+                    Update::update(&mut parties, &sender.as_ref());
+                    Update::update(&mut parties, &pk.as_ref());
+                    let parties_hash = base64::encode(parties.finalize().to_vec());
+
+                    let encrypted_messages = ipfs_data.messages
+                        .iter()
+                        .filter(|em| em.parties == parties_hash)
+                        .collect::<Vec<&EncryptedMessage>>();
+
+                    let pk = match position.unwrap() {
+                        0 => recipients.first().unwrap(),
+                        _ => &sender,
+                    };
+
+                    if let Some(em) = encrypted_messages.first() {
+                        let decrypted_message = em.decrypt(session, &pk, &account.secret).unwrap();
+                        let index_message = IndexMessage::new(&decrypted_message, &account.public, index, ipfs_file.0);
+
+                        index_messages.data.messages.push(index_message);
+                        if let Err(e) = index_messages.save() {
+                            return Err(Box::<dyn Error>::from(e));
+                        }
+
+                        match Account::increment(&config_file, &account.alias) {
+                            Ok(_) => {
+                                println!("Saved new message with Index: {}", index);
+                            }
+                            Err(e) => return Err(Box::<dyn Error>::from(e)),
+                        }
+
+                    }
+                }
+            }
         },
         Command::GetCoins => {
             let config_file: ConfigFile = ConfigFile::new();
@@ -205,7 +328,6 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
 
             let sender = AccountKeyring::Alice;
             let recipient = AccountId32::from(wallet.public);
-
 
             let extrinsic = match BalancesTransfer::new(&config_file, &sender, &recipient) {
                 Ok(res) => res,

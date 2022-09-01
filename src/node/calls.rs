@@ -204,6 +204,34 @@ struct ChainGetBlockSuccess {
 }
 
 
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum StateGetStorageResult {
+    Some(StateGetStorageSuccessSome),
+    None(StateGetStorageSuccessNone),
+}
+
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct StateGetStorageSuccessSome {
+    jsonrpc: String,
+    result: String,
+    id: u8,
+}
+
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct StateGetStorageSuccessNone {
+    jsonrpc: String,
+    result: Option<u32>,
+    id: u8,
+}
+
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct ChainGetBlockResult {
@@ -387,6 +415,40 @@ pub async fn get_block(socket: &mut Socket, block_hash: &String) -> Result<Chain
     };
 
     Ok(block.result)
+}
+
+
+pub async fn get_storage_value(socket: &mut Socket, storage_key: String) -> Result<Option<String>, NodeError> {
+
+    let req = NodeRequest {
+        id: 1,
+        jsonrpc: "2.0".to_string(),
+        method: "state_getStorage".to_string(),
+        params: vec![storage_key],
+    };
+
+    if let Err(e) = SocketMessage::send(socket, req) {
+        return Err(e);
+    }
+
+    let msg = match SocketMessage::read(socket) {
+        Ok(res) => res,
+        Err(e) => return Err(e),
+    };
+
+    let res: StateGetStorageResult = match serde_json::from_str(&msg) {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("Error: {:?}", e);
+            return Err(NodeError::CouldNotGetAccountNonce);
+        }
+    };
+
+
+    match res {
+        StateGetStorageResult::Some(res) => Ok(Some(res.result)),
+        StateGetStorageResult::None(_) => Ok(None),
+    }
 }
 
 
