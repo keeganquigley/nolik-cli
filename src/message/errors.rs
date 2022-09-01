@@ -38,3 +38,26 @@ impl Display for MessageError {
 }
 
 impl StdError for MessageError {}
+
+
+#[derive(PartialEq, Debug)]
+pub enum IndexError {
+    CouldNotCreateIndexDir,
+    CouldNotCreateIndexFile,
+    CouldNotReadIndexFile,
+    CouldNotParseIndexFile,
+}
+
+
+impl Display for IndexError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IndexError::CouldNotCreateIndexDir => f.write_str("Could not create Index dir"),
+            IndexError::CouldNotCreateIndexFile => f.write_str("Could not create Index file"),
+            IndexError::CouldNotReadIndexFile => f.write_str("Could not read Index file"),
+            IndexError::CouldNotParseIndexFile => f.write_str("Could not parse Index file"),
+        }
+    }
+}
+
+impl StdError for IndexError {}

@@ -105,7 +105,6 @@ impl IpfsFile {
             Err(e) => return Err(e),
         };
 
-
         let event = SendMessage;
         match event.submit(&config_file, &extrinsic_hash).await {
             Ok(_res) => {

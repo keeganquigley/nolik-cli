@@ -9,23 +9,6 @@ use crate::message::input::BatchInput;
 
 pub struct SessionInput {}
 
-// impl SessionInput {
-//     pub fn new(bi: &BatchInput, nonce: &box_::Nonce) -> Session {
-//         let nonce = Nonce::new(nonce);
-//
-//         let mut group = Group::new();
-//         group.add(&bi.sender.public);
-//         for recipient in &bi.recipients {
-//             group.add(&recipient);
-//         }
-//
-//         Session {
-//             nonce,
-//             group
-//         }
-//     }
-// }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session{
