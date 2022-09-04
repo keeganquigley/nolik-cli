@@ -85,7 +85,7 @@ impl IpfsFile {
     }
 
 
-    pub async fn send(&self, config_file: &ConfigFile, sender: &PublicKey, recipient: &PublicKey, wallet: &Wallet) -> Result<(), NodeError> {
+    pub async fn send(&self, config_file: &ConfigFile, sender: &PublicKey, recipients: &Vec<PublicKey>, wallet: &Wallet) -> Result<(), NodeError> {
 
         let pair = match wallet.get_pair() {
             Ok(pair) => pair,
@@ -95,7 +95,7 @@ impl IpfsFile {
             }
         };
 
-        let extrinsic = match NolikSendMessage::new(&config_file, &pair, &sender, &recipient, &self.0) {
+        let extrinsic = match NolikSendMessage::new(&config_file, &pair, &sender, &recipients, &self.0) {
             Ok(res) => res,
             Err(_e) => return Err(NodeError::CouldNotSubmitEvent),
         };
@@ -108,8 +108,8 @@ impl IpfsFile {
         let event = SendMessage;
         match event.submit(&config_file, &extrinsic_hash).await {
             Ok(_res) => {
-                let to = bs58::encode(recipient).into_string();
-                let res = format!("Message has been sent to \"{}\"", to);
+                // let to = bs58::encode(recipient).into_string();
+                let res = format!("Message has been sent");
                 println!("{}", res.bright_green());
                 Ok(())
             },

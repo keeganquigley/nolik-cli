@@ -46,4 +46,5 @@ pub mod pallet_errors {
     pub const ERROR_ALREADY_IN_BLACKLIST: &str = "AlreadyInBlackList";
     pub const ERROR_ADDRESS_IN_BLACKLIST: &str = "AddressInBlackList";
     pub const ERROR_ADDRESS_NOT_IN_WHITELIST: &str = "AddressNotInWhiteList";
+    pub const ERROR_NON_UNIQUE_IPFS_HASH: &str = "NonUniqueIpfsHash";
 }

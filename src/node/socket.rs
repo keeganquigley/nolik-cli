@@ -14,7 +14,7 @@ impl Socket {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error: {:?}", e);
-                return Err(NodeError::CouldNotGetAccountNonce);
+                return Err(NodeError::CouldNotConnectToNode);
             }
         };
 
@@ -38,13 +38,13 @@ impl SocketMessage {
             Ok(res) => res,
             Err(e) => {
                 eprintln!("Error: {:?}", e);
-                return Err(NodeError::CouldNotGetAccountNonce);
+                return Err(NodeError::CouldNotSendMessageToNode);
             }
         };
 
         if let Err(e) = &socket.ws.write_message(Message::Text(req)) {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotSendMessageToNode);
         };
 
         Ok(())
@@ -52,19 +52,18 @@ impl SocketMessage {
 
 
     pub fn read(socket: &mut Socket) -> Result<String, NodeError> {
-        let msg = match socket.ws.read_message() {
-            Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(NodeError::CouldNotGetAccountNonce);
-            },
-        };
+        loop {
+            let msg = match socket.ws.read_message() {
+                Ok(res) => res,
+                Err(e) => {
+                    eprintln!("Error: {:?}", e);
+                    return Err(NodeError::CouldNotReadMessageFromNode);
+                },
+            };
 
-        match msg {
-            tungstenite::Message::Text(res) => Ok(res),
-            _ => {
-                eprintln!("Node response format is other than Text");
-                return Err(NodeError::CouldNotGetAccountNonce);
+            return match msg {
+                tungstenite::Message::Text(res) => Ok(res),
+                _ => continue
             }
         }
     }

@@ -652,10 +652,8 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            let res = ipfs_input.ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.is_ok();
-            assert_eq!(res, true);
-        }
+        let res = ipfs_input.ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.is_ok();
+        assert_eq!(res, true);
 
 
         fs::remove_file(config_file.path).unwrap();
@@ -731,10 +729,9 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            let res = ipfs_input.ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap_err();
-            assert_eq!(res, NodeError::PalletAddressInBlacklist);
-        }
+
+        let res = ipfs_input.ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap_err();
+        assert_eq!(res, NodeError::PalletAddressInBlacklist);
 
         fs::remove_file(config_file.path).unwrap();
     }
@@ -808,10 +805,9 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            let res = ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.is_ok();
-            assert_eq!(res, true);
-        }
+
+        let res = ipfs_input.ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.is_ok();
+        assert_eq!(res, true);
 
         fs::remove_file(config_file.path).unwrap();
     }
@@ -885,10 +881,8 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            let res = ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap_err();
-            assert_eq!(res, NodeError::PalletAddressNotInWhitelist);
-        }
+        let res = ipfs_input.ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap_err();
+        assert_eq!(res, NodeError::PalletAddressNotInWhitelist);
 
         fs::remove_file(config_file.path).unwrap();
     }
@@ -1002,9 +996,7 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
-        }
+        ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap();
 
         let nonce_alice_a = alice.index(&config_file).await.unwrap();
         assert_eq!(nonce_alice_a.is_some(), true);
@@ -1053,9 +1045,7 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
-        }
+        ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap();
 
         let nonce_alice_b = alice.index(&config_file).await.unwrap();
         let nonce_bob_b = bob.index(&config_file).await.unwrap();
@@ -1127,9 +1117,7 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in recipients {
-            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
-        }
+        ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap();
 
         let nonce_alice = alice.index(&config_file).await.unwrap().unwrap();
         let nonce_bob = bob.index(&config_file).await.unwrap().unwrap();
@@ -1192,9 +1180,7 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in &recipients {
-            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
-        }
+        ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap();
 
 
         let arr = [
@@ -1237,11 +1223,7 @@ mod message {
         let batch = ipfs_input.ipfs_file.get().await.unwrap();
         let (sender, recipients) = batch.parties(&config_file).unwrap();
 
-        for pk in &recipients {
-            ipfs_file.send(&config_file, &sender, &pk, &ipfs_input.wallet).await.unwrap();
-        }
-
-
+        ipfs_file.send(&config_file, &sender, &recipients, &ipfs_input.wallet).await.unwrap();
 
         let index_file = IndexFile::temp();
         let mut index = Index::new(&index_file).unwrap();

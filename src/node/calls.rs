@@ -320,7 +320,7 @@ pub async fn get_genesis_hash(socket: &mut Socket) -> Result<H256, NodeError> {
         Ok(res) => res,
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotGetGenesisHash);
         }
     };
 
@@ -351,7 +351,7 @@ pub async fn get_runtime_version(socket: &mut Socket) -> Result<StateGetRuntimeV
         Ok(res) => res,
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotGetRuntimeVersion);
         }
     };
 
@@ -380,7 +380,7 @@ pub async fn get_runtime_metadata(socket: &mut Socket) -> Result<String, NodeErr
         Ok(res) => res,
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotGetMetadata);
         }
     };
 
@@ -410,7 +410,7 @@ pub async fn get_block(socket: &mut Socket, block_hash: &String) -> Result<Chain
         Ok(res) => res,
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotGetBlock);
         }
     };
 
@@ -440,7 +440,7 @@ pub async fn get_storage_value(socket: &mut Socket, storage_key: String) -> Resu
         Ok(res) => res,
         Err(e) => {
             eprintln!("Error: {:?}", e);
-            return Err(NodeError::CouldNotGetAccountNonce);
+            return Err(NodeError::CouldNotGetStorageValue);
         }
     };
 

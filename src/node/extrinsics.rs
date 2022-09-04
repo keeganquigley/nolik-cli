@@ -10,6 +10,7 @@ use subxt::{Call, ClientBuilder, DefaultConfig, PolkadotExtrinsicParams};
 use crate::node::calls::{get_nonce, get_genesis_hash, get_runtime_version, StateGetRuntimeVersion};
 use crate::node::errors::NodeError;
 use crate::{Config, ConfigError, ConfigFile, Socket};
+use crate::message::utils::hash_address;
 
 
 #[subxt::subxt(runtime_metadata_path = "metadata.scale")]
@@ -213,7 +214,7 @@ impl NolikAddOwner {
 
         let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
         let call_owner: [u8; 1] = [0];
-        let address = bs58::encode(&address).into_string();
+        let address = hash_address(&address);
 
         let tup = (address, call_owner);
         let bytes = [
@@ -249,8 +250,8 @@ impl NolikAddToWhitelist {
         };
 
         let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
-        let add_to = bs58::encode(&add_to).into_string();
-        let new_address = bs58::encode(&new_address).into_string();
+        let add_to = hash_address(&add_to);
+        let new_address = hash_address(&new_address);
 
         let tup = (add_to, new_address);
         let bytes = [
@@ -286,8 +287,8 @@ impl NolikAddToBlacklist {
         };
 
         let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
-        let add_to = bs58::encode(&add_to).into_string();
-        let new_address = bs58::encode(&new_address).into_string();
+        let add_to = hash_address(&add_to);
+        let new_address = hash_address(&new_address);
 
         let tup = (add_to, new_address);
         let bytes = [
@@ -316,17 +317,17 @@ impl Call for NolikAddToBlacklist {
 pub struct NolikSendMessage;
 
 impl NolikSendMessage {
-    pub fn new(config_file: &ConfigFile, pair: &sp_core::sr25519::Pair, sender: &PublicKey, recipient: &PublicKey, ipfs_id: &String) -> Result<Extrinsic<Self>, ConfigError> {
+    pub fn new(config_file: &ConfigFile, pair: &sp_core::sr25519::Pair, sender: &PublicKey, recipients: &Vec<PublicKey>, ipfs_id: &String) -> Result<Extrinsic<Self>, ConfigError> {
         let config = match Config::new(&config_file) {
             Ok(res) => res,
             Err(e) => return Err(e),
         };
 
         let owner: AccountId32 = sp_core::crypto::AccountId32::from(pair.public());
-        let sender = bs58::encode(&sender).into_string();
-        let recipient = bs58::encode(&recipient).into_string();
+        let sender = hash_address(&sender);
+        let recipients: Vec<String> = recipients.iter().map(|pk| hash_address(pk)).collect();
 
-        let tup = (sender, recipient, ipfs_id.clone());
+        let tup = (sender, recipients, ipfs_id.clone());
         let bytes = [
             tup.0.encode(),
             tup.1.encode(),
@@ -343,7 +344,7 @@ impl NolikSendMessage {
     }
 }
 
-impl ExtrinsicCall for NolikSendMessage { type Call = (String, String, String); }
+impl ExtrinsicCall for NolikSendMessage { type Call = (String, Vec<String>, String); }
 impl Encode for NolikSendMessage {}
 impl Call for NolikSendMessage {
     const PALLET: &'static str = "Nolik";

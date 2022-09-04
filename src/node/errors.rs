@@ -11,7 +11,12 @@ pub enum NodeError {
     CouldNotSubmitEvent,
     CouldNotGetCallIndex,
     CouldNotGetAccountIndex,
-    CouldNorGetAccountMessage,
+    CouldNotGetAccountMessage,
+    CouldNotGetBlock,
+    CouldNotGetStorageValue,
+    CouldNotConnectToNode,
+    CouldNotSendMessageToNode,
+    CouldNotReadMessageFromNode,
 
     PalletAddressNotOwned,
     PalletAccountInOwners,
@@ -20,6 +25,7 @@ pub enum NodeError {
     PalletAlreadyInBlacklist,
     PalletAddressInBlacklist,
     PalletAddressNotInWhitelist,
+    PalletNonUniqueIpfsHash,
     PalletUnknownError,
 }
 
@@ -35,7 +41,12 @@ impl Display for NodeError {
             NodeError::CouldNotSubmitEvent => f.write_str("Could not submit event"),
             NodeError::CouldNotGetCallIndex => f.write_str("Could not get call index"),
             NodeError::CouldNotGetAccountIndex => f.write_str("Could not get the number of account messages"),
-            NodeError::CouldNorGetAccountMessage => f.write_str("Could not get the message"),
+            NodeError::CouldNotGetAccountMessage => f.write_str("Could not get the message"),
+            NodeError::CouldNotGetBlock => f.write_str("Could not get block"),
+            NodeError::CouldNotGetStorageValue => f.write_str("Could not get storage value"),
+            NodeError::CouldNotConnectToNode => f.write_str("Could not connect to node"),
+            NodeError::CouldNotSendMessageToNode => f.write_str("Could not send message to the node"),
+            NodeError::CouldNotReadMessageFromNode => f.write_str("Could not read message from the node"),
 
             NodeError::PalletAccountInOwners => f.write_str("Account is already owned by this wallet"),
             NodeError::PalletAddressNotOwned => f.write_str("Account is not owned by this wallet"),
@@ -44,6 +55,7 @@ impl Display for NodeError {
             NodeError::PalletAlreadyInBlacklist => f.write_str("Address is already in Blacklist"),
             NodeError::PalletAddressInBlacklist => f.write_str("Your address is in the Blacklist of the recipient"),
             NodeError::PalletAddressNotInWhitelist => f.write_str("Your address is not in the Whitelist of the recipient"),
+            NodeError::PalletNonUniqueIpfsHash => f.write_str("This message has already been sent"),
             NodeError::PalletUnknownError => f.write_str("Unknown error"),
         }
     }

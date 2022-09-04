@@ -84,14 +84,11 @@ pub trait NodeEvent {
                     };
 
                     if event.phase.eq(&ApplyExtrinsic(extrinsic_index)) {
-                        let success_event = event.as_event::<Self::S>().unwrap();
-
-                        if success_event.is_some() {
+                        if event.as_event::<Self::S>().unwrap().is_some() {
                             return Ok(());
                         }
 
-                        let failed_event = event.as_event::<Self::F>().unwrap();
-                        if failed_event.is_some() {
+                        if event.as_event::<Self::F>().unwrap().is_some() {
                             let ev = RawEventDetails::from(event);
                             let dispatch_error = sp_runtime::DispatchError::decode(&mut &*ev.data).unwrap();
                             let locked_metadata = api.client.metadata();
@@ -115,6 +112,7 @@ pub trait NodeEvent {
                                 pallet_errors::ERROR_SAME_ADDRESS => NodeError::PalletSameAddress,
                                 pallet_errors::ERROR_ADDRESS_IN_BLACKLIST => NodeError::PalletAddressInBlacklist,
                                 pallet_errors::ERROR_ADDRESS_NOT_IN_WHITELIST => NodeError::PalletAddressNotInWhitelist,
+                                pallet_errors::ERROR_NON_UNIQUE_IPFS_HASH => NodeError::PalletNonUniqueIpfsHash,
                                 _ => NodeError::PalletUnknownError,
                             };
 

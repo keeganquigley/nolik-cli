@@ -149,7 +149,7 @@ mod account {
             0,
         );
 
-        Account::increment(&config_file, String::from("alice")).unwrap();
+        Account::increment(&config_file, &String::from("alice")).unwrap();
         let contents = fs::read_to_string(&config_file.path).unwrap();
         let toml_data: ConfigData = toml::from_str(contents.as_str()).unwrap();
 

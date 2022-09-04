@@ -1,4 +1,5 @@
 use sodiumoxide::crypto::box_;
+use sodiumoxide::crypto::box_::PublicKey;
 use crate::message::errors::MessageError;
 
 pub fn base64_to_vec(data: &String) -> Result<Vec<u8>, MessageError> {
@@ -77,4 +78,12 @@ pub fn base58_to_seed(data: &String) -> Result<box_::Seed, MessageError> {
         },
         Err(e) => return Err(e),
     }
+}
+
+
+pub fn hash_address(data: &PublicKey) -> String {
+    let hash_512 = sp_core::hashing::blake2_512(&data.as_ref());
+    let hash_128 = sp_core::hashing::blake2_128(&hash_512);
+
+    hex::encode(hash_128)
 }
