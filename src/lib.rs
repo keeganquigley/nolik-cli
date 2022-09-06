@@ -342,6 +342,8 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
+            // println!("EH {}", extrinsic_hash);
+
             let event = BalanceTransferEvent;
             match event.submit(&config_file, &extrinsic_hash).await {
                 Ok(_res) => {

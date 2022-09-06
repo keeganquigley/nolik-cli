@@ -468,7 +468,6 @@ pub async fn call_extrinsic(socket: &mut Socket, call_hex: &String) -> Result<St
     }
 
     loop {
-
         let msg = match SocketMessage::read(socket) {
             Ok(res) => res,
             Err(e) => return Err(e),
@@ -476,10 +475,7 @@ pub async fn call_extrinsic(socket: &mut Socket, call_hex: &String) -> Result<St
 
         let res: AuthorSubmitExtrinsicResult = match serde_json::from_str(&msg) {
             Ok(res) => res,
-            Err(e) => {
-                eprintln!("Error: {:?}", e);
-                return Err(NodeError::CouldNotCallExtrinsic);
-            }
+            Err(_e) => continue,
         };
 
 
