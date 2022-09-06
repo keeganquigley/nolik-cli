@@ -54,7 +54,13 @@ impl IpfsFile {
 
     #[async_recursion(?Send)]
     pub async fn get(&self) -> Result<Batch, MessageError> {
+        println!("=> Getting new message with ID: {}", self.0);
+
         let client = IpfsClient::default();
+        if let Err(e) = client.bootstrap_add_default().await {
+            eprintln!("Error on adding default peers: {:?}", e);
+        }
+
         let data = match client.cat(&self.0).map_ok(|chunk| chunk.to_vec()).try_concat().await {
             Ok(res) => {
                 match String::from_utf8(res) {

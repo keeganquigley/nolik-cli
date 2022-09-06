@@ -199,6 +199,8 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
+
+            println!("Checking for new messages...");
             let chain_index = match account.index(&config_file).await {
                 Ok(res) => match res {
                     Some(index) => index,
@@ -228,6 +230,11 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             if chain_index.eq(&last_received_message_index) {
                 println!("No new messages");
             }
+
+            let diff = chain_index - last_received_message_index;
+            let output = format!("You have {} new message(s)", diff);
+            println!("{}", output.bright_green());
+
 
             let mut hashes: Vec<(String, u32)> = Vec::new();
             for i in last_received_message_index..chain_index {
@@ -307,7 +314,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                         return Err(Box::<dyn Error>::from(e));
                     }
 
-                    println!("Saved new message with Index: {}", index);
+                    println!("   ✅ Saved new message with Index: {}", index);
                 }
             }
         },
