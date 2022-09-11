@@ -1,6 +1,10 @@
 # Nolik CLI
 
-## SETUP
+Nolik CLI is an app that allows to send data directly between peers without a third party.
+It requires local Substrate (with Nolik pallet) and IPFS nodes.
+Follow the installation instructions in the [Nolik](https://github.com/chainify/nolik) repository.
+
+## Application Setup
 
 Download the CLI app
 
