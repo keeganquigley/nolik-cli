@@ -138,6 +138,9 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             }
         },
         Command::ComposeMessage => {
+            clearscreen::clear().expect("failed to clear screen");
+            println!("Composing the message...");
+
             let config_file: ConfigFile = ConfigFile::new();
 
             let bi = match BatchInput::new(&mut input, &config_file) {
@@ -157,12 +160,16 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             }
         },
         Command::SendMessage => {
+
             let config_file: ConfigFile = ConfigFile::new();
 
             let password = match Wallet::password_input_once() {
                 Ok(password) => Some(password),
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
+
+            clearscreen::clear().expect("failed to clear screen");
+            println!("In progress...");
 
             let ipfs_input = match IpfsInput::new(&config_file, &input, password) {
                 Ok(res) => res,
@@ -197,6 +204,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
 
+            clearscreen::clear().expect("failed to clear screen");
             println!("Checking for new messages...");
 
             let chain_index = match account.index(&config_file).await {
@@ -225,9 +233,6 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 None => 0,
             };
 
-            if chain_index.eq(&last_received_message_index) {
-                println!("No new messages");
-            }
 
             let diff = chain_index - last_received_message_index;
             let output = format!("You have {} new message(s)", diff);
@@ -248,6 +253,8 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             }
 
             for (hash, message_index) in hashes {
+
+
                 let ipfs_file = IpfsFile::new(hash);
                 let account = account.clone();
 

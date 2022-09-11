@@ -1,4 +1,3 @@
-use std::io::{stdout, Write};
 use std::time::Duration;
 use futures_util::TryStreamExt;
 use ipfs_api_backend_hyper::{IpfsApi, IpfsClient};
@@ -11,7 +10,8 @@ use crate::cli::errors::InputError;
 use crate::node::extrinsics::NolikSendMessage;
 use blake2::Digest;
 use blake2::digest::Update;
-use crossterm::{cursor, ExecutableCommand, QueueableCommand};
+use std::io::stdout;
+use crossterm::{cursor, execute};
 
 
 pub struct IpfsInput {
@@ -116,7 +116,6 @@ impl IpfsFile {
         let event = SendMessage;
         match event.submit(&config_file, &extrinsic_hash).await {
             Ok(_res) => {
-                // let to = bs58::encode(recipient).into_string();
                 let res = format!("Message has been sent");
                 println!("{}", res.bright_green());
                 Ok(())
@@ -127,13 +126,8 @@ impl IpfsFile {
 
 
     pub async fn save(&self, message_index: u32, account: &Account, index: &mut Index) -> Result<(), MessageError> {
-
-        let output_a = format!("=> Saving new message with ID: {}...", &self.0);
-        let mut stdout = stdout();
-        stdout.execute(cursor::Hide).unwrap();
-        stdout.queue(cursor::SavePosition).unwrap();
-        stdout.write_all(output_a.as_bytes()).unwrap();
-
+        let output = format!("=> Saving new message with ID: {}...", &self.0);
+        println!("{}", output);
 
         let batch = self.get().await?;
         let public_nonce = base64_to_nonce(&batch.nonce)?;
@@ -191,8 +185,10 @@ impl IpfsFile {
             }
         }
 
+        execute!(stdout(), cursor::MoveUp(1)).unwrap();
+
         let ok = String::from("OK");
-        println!(" {} Index: {}", ok.bright_green(), message_index);
+        println!("{} {} Index: {}", output, ok.bright_green(), message_index);
 
         Ok(())
     }

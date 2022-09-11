@@ -100,6 +100,7 @@ impl Batch {
             Ok(res) => {
                 match client.pin_add(&res.hash, true).await {
                     Ok(_pin) => {
+                        clearscreen::clear().expect("failed to clear screen");
                         let output = format!("Message has been composed!");
                         let hash = format!("IPFS hash: {}", &res.hash);
 

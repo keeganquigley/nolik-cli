@@ -73,7 +73,6 @@ impl BatchInput {
         let mut files: Vec<File> = Vec::new();
         for path in file_values {
             let file = Path::new(&path);
-            println!("PATH {:?}", file);
             let binary= match fs::read(file) {
                 Ok(data) => data,
                 Err(e) => {

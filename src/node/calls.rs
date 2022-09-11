@@ -461,7 +461,9 @@ pub async fn call_extrinsic(socket: &mut Socket, call_hex: &String) -> Result<St
         params: vec![call_hex.to_string()],
     };
 
-    println!("Sending request...");
+
+    clearscreen::clear().expect("failed to clear screen");
+    println!("Sending transaction...");
 
     if let Err(e) = SocketMessage::send(socket, req) {
         return Err(e);
