@@ -150,6 +150,8 @@ Please notice that you will get both outgoing and incoming messages.
 Valid keys:
 * `-a | --account` - the alias or a Base58 public key of your account (Required, Unique)
 
+The decrypted messages are saved to the `~/.nolik/index.toml` file.
+
 ## Testing
 
 For testing you have to run a local blockchain and an IPFS node.
