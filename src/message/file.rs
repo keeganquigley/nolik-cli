@@ -1,3 +1,5 @@
+use std::fs;
+use std::io::Write;
 use serde_derive::{Serialize, Deserialize};
 use sodiumoxide::crypto::box_::{Nonce, PublicKey, SecretKey};
 use crate::message::encryption::Encryption;
@@ -20,6 +22,39 @@ impl File {
         let name = File::encrypt_data(&self.name.as_bytes(), &nonce, pk, sk);
 
         EncryptedFile { file, name }
+    }
+
+    pub fn save(&self, hash: &String) -> Result<(), MessageError> {
+        let home_dir = dirs::home_dir().unwrap();
+        let home_path = home_dir.as_path();
+        let nolik_dir = home_path.join(".nolik");
+        let message_dir = nolik_dir.join(format!("{}", &hash));
+        let message_file = message_dir.join(&self.name);
+
+        if let false = message_dir.exists() {
+            if let Err(e) = fs::create_dir(&message_dir) {
+                eprintln!("Error: {}", e);
+                return Err(MessageError::CouldNotSaveIndexFile)
+            }
+        }
+
+        match fs::File::create(message_file.as_path()) {
+            Ok(mut file) => {
+                match file.write_all(self.binary.as_ref()) {
+                    Ok(_) => {
+                        Ok(())
+                    },
+                    Err(e) => {
+                        eprintln!("Error: {}", e);
+                        return Err(MessageError::CouldNotSaveIndexFile)
+                    }
+                }
+            },
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                return Err(MessageError::CouldNotSaveIndexFile)
+            }
+        }
     }
 }
 

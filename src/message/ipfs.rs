@@ -180,6 +180,10 @@ impl IpfsFile {
             let decrypted_message = em.decrypt(session, &message_pk, &account.secret).unwrap();
             let index_message = IndexMessage::new(&decrypted_message, &account.public, message_index as u32, self.0.clone());
 
+            for file in decrypted_message.files.iter() {
+                file.save(&self.0)?;
+            }
+
             index.data.messages.push(index_message);
             if let Err(e) = index.save() {
                 eprintln!("Error: {}", e);

@@ -16,6 +16,7 @@ pub enum MessageError {
     CouldNotDecryptAnyOfParties,
     CouldNotSendMessage,
     CouldNotSaveIndexMessage,
+    CouldNotSaveIndexFile,
 }
 
 
@@ -34,7 +35,8 @@ impl Display for MessageError {
             MessageError::CouldNotReadIpfsData => f.write_str("Could not read IPFS data"),
             MessageError::CouldNotDecryptAnyOfParties => f.write_str("Could not decrypt any of message parties"),
             MessageError::CouldNotSendMessage => f.write_str("Could not send the message"),
-            MessageError::CouldNotSaveIndexMessage => f.write_str("Could not save message locally"),
+            MessageError::CouldNotSaveIndexMessage => f.write_str("Could not save the message locally"),
+            MessageError::CouldNotSaveIndexFile => f.write_str("Could not save the file locally"),
         }
     }
 }

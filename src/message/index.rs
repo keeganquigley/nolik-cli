@@ -6,6 +6,7 @@ use rand::{distributions::Alphanumeric, Rng};
 use sodiumoxide::crypto::box_::PublicKey;
 use crate::message::entry::Entry;
 use crate::message::errors::IndexError;
+use crate::message::file::File;
 use crate::message::message::Message;
 
 
@@ -57,7 +58,12 @@ pub struct IndexMessage {
     pub nonce: String,
     pub from: String,
     pub to: Vec<String>,
+
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
     pub entries: Vec<Entry>,
+
+    #[serde(skip_serializing_if="Vec::is_empty", default="Vec::new")]
+    pub files: Vec<IndexFileLink>,
 }
 
 
@@ -75,6 +81,11 @@ impl IndexMessage {
         }
 
         let entries = m.entries.clone();
+        let mut files: Vec<IndexFileLink> = Vec::new();
+        for file in m.files.iter() {
+            let link = IndexFileLink::new(&file, &hash);
+            files.push(link);
+        }
 
         IndexMessage {
             index,
@@ -84,7 +95,20 @@ impl IndexMessage {
             from,
             to,
             entries,
+            files,
         }
+    }
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct IndexFileLink(String);
+
+
+impl IndexFileLink {
+    pub fn new(file: &File, hash: &String) -> IndexFileLink {
+        let path = format!("./{}/{}", hash, file.name);
+        IndexFileLink(path)
     }
 }
 
