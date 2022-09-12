@@ -138,7 +138,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             }
         },
         Command::ComposeMessage => {
-            clearscreen::clear().expect("failed to clear screen");
+            // clearscreen::clear().expect("failed to clear screen");
             println!("Composing the message...");
 
             let config_file: ConfigFile = ConfigFile::new();
@@ -168,7 +168,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
                 Err(e) => return Err(Box::<dyn Error>::from(e)),
             };
 
-            clearscreen::clear().expect("failed to clear screen");
+            // clearscreen::clear().expect("failed to clear screen");
             println!("In progress...");
 
             let ipfs_input = match IpfsInput::new(&config_file, &input, password) {
@@ -204,7 +204,7 @@ pub async fn run(mut input: Input) -> Result<(), Box<dyn Error>> {
             };
 
 
-            clearscreen::clear().expect("failed to clear screen");
+            // clearscreen::clear().expect("failed to clear screen");
             println!("Checking for new messages...");
 
             let chain_index = match account.index(&config_file).await {
