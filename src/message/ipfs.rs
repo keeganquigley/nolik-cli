@@ -183,6 +183,12 @@ impl IpfsFile {
                 eprintln!("Error: {}", e);
                 return Err(MessageError::CouldNotSaveIndexMessage);
             }
+
+            let client = IpfsClient::default();
+            if let Err(e) = client.pin_add(&self.0, true).await {
+                eprintln!("Error on pinning IPFS file: {:#?}", e);
+                return Err(MessageError::CouldNotPinIpfsFile)
+            }
         }
 
         execute!(stdout(), cursor::MoveUp(1)).unwrap();

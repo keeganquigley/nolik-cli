@@ -111,7 +111,7 @@ impl Batch {
                     },
                     Err(e) => {
                         eprintln!("Error on pinning IPFS file: {:#?}", e);
-                        return Err(MessageError::CouldNotAddFileToIPFS)
+                        return Err(MessageError::CouldNotPinIpfsFile)
                     }
                 }
                 let ipfs_file = IpfsFile::new(res.hash);
