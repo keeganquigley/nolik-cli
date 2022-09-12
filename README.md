@@ -44,6 +44,8 @@ Message data:
 * `nonce` - the unique secret nonce of a message
 * `from` - the sender of a message
 * `to` - message recipients
+* `entries` - saved entries if any
+* `files` - links to saved files if any
 
 ## Using the app
 To use the app you will have to generate at least one Wallet and one Account.
@@ -101,6 +103,7 @@ Valid flags:
 * `-r | --recipient` - the recipient of a message. The Base58 public key of the recipient (Required, Non-Unique) 
 * `-k | --key` - the key of the message. This attribute requires a corresponding Value (Optional, Non-Unique)
 * `-v | --value` - the value of a message. This attribute requires a corresponding Key (Optional, Non-Unique)
+* `-f | --file` - the absolute path to the file you want to send (Optional, Non-Unique)
 
 In case of successful message composing you will get an IPFS hash of the saved file (for instance, `QmTFiymizv6yTBLbHTkWe7h4Giy9yg623rjMoMeQk29hf3`).
 That hash is required for sending the message.
