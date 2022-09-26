@@ -147,6 +147,8 @@ Valid keys:
 Getting messages for your account.
 Please notice that you will get both outgoing and incoming messages.
 
+`cargo run -- get messages -a alice`
+
 Valid keys:
 * `-a | --account` - the alias or a public key (Base 58 encryption) of your account (Required, Unique)
 
